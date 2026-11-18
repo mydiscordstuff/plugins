@@ -1,0 +1,44 @@
+name: Publish Valenced plugins
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-valenced-plugins
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Build and publish repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          packages="$RUNNER_TEMP/valenced-packages"
+          git worktree add --detach "$packages" refs/remotes/origin/packages
+          python3 scripts/build_catalog.py "$packages"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C "$packages" add --all
+          if ! git -C "$packages" diff --cached --quiet; then
+            git -C "$packages" commit -m 'Publish Valenced plugin packages'
+          fi
+          git add -- index.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update Valenced plugin catalog'
+          fi
+
+          package_commit=$(git -C "$packages" rev-parse HEAD)
+          git push --atomic origin HEAD:refs/heads/main "$package_commit:refs/heads/packages"

@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "mydiscordstuff Plugins",
-  "description": "Platform Indicators for Valenced, maintained by mydiscordstuff.",
+  "description": "Plugins para o Valenced mantidos por mydiscordstuff.",
   "plugins": {
     "mydiscordstuff.platform-indicators": {
       "name": "Platform Indicators (Valenced)",
@@ -15,7 +15,7 @@
       },
       "versions": {
         "0.3.1": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.platform-indicators@0.3.1.zip",
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/f78ed7f185087b89418bcdf010db21c70f00501272daac83e824e71625746fbb/mydiscordstuff.platform-indicators@0.3.1.zip",
           "sha256": "f78ed7f185087b89418bcdf010db21c70f00501272daac83e824e71625746fbb",
           "size": 17021,
           "dependencies": {
