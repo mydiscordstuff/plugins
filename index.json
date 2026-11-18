@@ -5,19 +5,19 @@
   "plugins": {
     "mydiscordstuff.platform-indicators": {
       "name": "Platform Indicators (Valenced)",
-      "description": "Shows Desktop, Web, Mobile, Console and VR client presence beside Discord users. An experimental Valenced port of Vendetta PlatformIndicators.",
+      "description": "Shows Desktop, Web, Mobile, Console and VR presence. Fixes the plugin loading export.",
       "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
       "contributors": [
         "MSMA (https://github.com/Martinz64/vendetta-plugins \"Original Vendetta idea\")"
       ],
       "channels": {
-        "latest": "0.1.0"
+        "latest": "0.1.1"
       },
       "versions": {
-        "0.1.0": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.platform-indicators@0.1.0.zip",
-          "sha256": "ba7430f8abdde9f3e3802ffac6b0feb80916be9d2bd5867f9b47a992ae2b2353",
-          "size": 4686,
+        "0.1.1": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.platform-indicators@0.1.1.zip",
+          "sha256": "2086075faa7629f100f890a0cc604cf4ee5358e22b6c79a2fbd5aadb4a3574c2",
+          "size": 4666,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
