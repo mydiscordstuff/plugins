@@ -5,19 +5,19 @@
   "plugins": {
     "mydiscordstuff.platform-indicators": {
       "name": "Platform Indicators (Valenced)",
-      "description": "Custom crimson platform PNG icons in DM lists, profiles and DM title bar. Native message emojis are optional.",
+      "description": "Custom platform icons in DM lists, profiles, DM titles and beside Android message timestamps.",
       "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
       "contributors": [
         "MSMA (https://github.com/Martinz64/vendetta-plugins \"Original Vendetta plugin\")"
       ],
       "channels": {
-        "latest": "0.3.1"
+        "latest": "0.3.2"
       },
       "versions": {
-        "0.3.1": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/f78ed7f185087b89418bcdf010db21c70f00501272daac83e824e71625746fbb/mydiscordstuff.platform-indicators@0.3.1.zip",
-          "sha256": "f78ed7f185087b89418bcdf010db21c70f00501272daac83e824e71625746fbb",
-          "size": 17021,
+        "0.3.2": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/e9a14fc04545160b7b235dd44e79af4aed583ec3c8d3518068231a63aac3caee/mydiscordstuff.platform-indicators@0.3.2.zip",
+          "sha256": "e9a14fc04545160b7b235dd44e79af4aed583ec3c8d3518068231a63aac3caee",
+          "size": 26531,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
