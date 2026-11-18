@@ -5,19 +5,19 @@
   "plugins": {
     "mydiscordstuff.platform-indicators": {
       "name": "Platform Indicators (Valenced)",
-      "description": "Crimson platform icons in DMs, member lists and profiles; fixes automatic disabling after restart.",
+      "description": "Crimson platform icons in member lists, profiles, DM list and headers; platform symbols in native chat messages.",
       "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
       "contributors": [
         "MSMA (https://github.com/Martinz64/vendetta-plugins \"Original Vendetta plugin\")"
       ],
       "channels": {
-        "latest": "0.2.1"
+        "latest": "0.3.0"
       },
       "versions": {
-        "0.2.1": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.platform-indicators@0.2.1.zip",
-          "sha256": "f4c0c90339f7bb502ab46494af72fb4e4d1563af280dd85a612a05a876d0cc82",
-          "size": 15194,
+        "0.3.0": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.platform-indicators@0.3.0.zip",
+          "sha256": "f17f4635ce4ba95b4515f6494b54003a3447654eba3f5bc8cf1aa05ac9183452",
+          "size": 16585,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
