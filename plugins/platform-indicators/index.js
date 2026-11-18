@@ -21,11 +21,12 @@ function initializeRuntime() {
 }
 
 /**
- * Platform Indicators 0.3.2 — Valenced / mydiscordstuff
+ * Platform Indicators 0.3.3 — Valenced / mydiscordstuff
  * Original idea and presence conventions: MSMA's Vendetta PlatformIndicators.
  * Bold custom PNG icons. No network requests, trackers, or outbound traffic.
  *
- * Android message timestamps use the same PNGs through the native renderer.
+ * Native chat row timestamps are strings, not React image views.
+ * Real PNGs work in React surfaces. Native messages need Android code for PNGs.
  */
 
 
@@ -43,11 +44,11 @@ const DEFAULTS = Object.freeze({
   friends: true,
   messageHeaders: true,
   nativeMessageSymbols: true,
-  crimson: true,
+  crimson: false,
   showOffline: false,
   iconSize: 17,
 })
-const MARKER = 'mydiscordstuff.pi.v32'
+const MARKER = 'mydiscordstuff.pi.v31'
 const RED = '#C93A55'
 const COLORS = {
   online: '#37B875', idle: '#E5A42E', dnd: '#ED4351',
@@ -109,6 +110,7 @@ function watchPresence(cb) {
 function Badge({ userId, compact = false }) {
   // This hook must stay inside the React component, not the patch callback.
   const config = storageApi?.use?.() || DEFAULTS
+  const useCrimson = config.crimson ?? DEFAULTS.crimson
   const getSnap = React.useCallback(() => snapshot(userId), [userId])
   React.useSyncExternalStore(watchPresence, getSnap, getSnap)
   const statuses = statusMap(userId)
@@ -128,7 +130,7 @@ function Badge({ userId, compact = false }) {
     source: { uri: ICON_URIS[key === 'embedded' ? 'console' : key], width: size, height: size },
     accessibilityLabel: `${label}: ${statuses[key]}`,
     style: { width: size, height: size, marginHorizontal: 2,
-      tintColor: config.crimson === false ? (COLORS[statuses[key]] || RED) : RED },
+      tintColor: useCrimson ? RED : (COLORS[statuses[key]] || COLORS.offline) },
   })))
 }
 function badge(id, compact = false) {
@@ -270,47 +272,36 @@ function injectMessageHeader(root, props) {
   if (!id) return root
   return insertByName(root, id, { ...props, user: props?.message?.author }, true)
 }
-// Transport only to the on-device timestamp TextView. All six palette values and
-// their device order are shared with TimestampIcons.kt. No message content changes.
-const TIMESTAMP_PREFIX = '\u2063\u2062\u2063'
-const TIMESTAMP_MARK = /\u2063\u2062\u2063[\uFE00-\uFE05]{5}\u2063/g
-const STATUS_TINT = { online: 2, idle: 3, dnd: 4, offline: 5, invisible: 5 }
-let nativeTimestampReady = false
-
-function prepareNativeTimestamps(logger) {
-  if (valenced.react?.ReactNative?.Platform?.OS !== 'android') return false
-  try {
-    const icons = DEVICES.map(([key]) => ICON_URIS[key === 'embedded' ? 'console' : key])
-    return valenced.modules.native.callNativeMethodSync(
-      'mydiscordstuff.platform-indicators.configureTimestamps', icons,
-    ) === true
-  } catch (error) {
-    logger?.warn?.('Android timestamp icons unavailable', error)
-    return false
-  }
+// Android chat headers receive a text timestamp. Append the device emoji to that field.
+const MESSAGE_SYMBOLS = {
+  desktop: '🖥', web: '🌐', mobile: '📱', embedded: '🎮', vr: '🥽',
 }
-
+const CHAT_SUFFIX_KEY = ' • '
+function nativePlatformSuffix(userId) {
+  const current = statusMap(userId)
+  return DEVICES.filter(([p]) => {
+    const status = current[p]
+    return typeof status === 'string' && status !== 'offline' && status !== 'invisible'
+  }).map(([p]) => MESSAGE_SYMBOLS[p]).join('')
+}
 function patchNativeChatMessage(row, input) {
+  if (!setting('nativeMessageSymbols')) return row
   const message = input?.message
   const target = row?.message
-  if (!target || typeof target.timestamp !== 'string' || !target.timestamp) return row
-  const clean = target.timestamp.replace(TIMESTAMP_MARK, '')
-  let timestamp = clean
-  const normal = message?.type == null || [0, 19, 'DEFAULT', 'REPLY'].includes(message.type)
-  if (nativeTimestampReady && setting('nativeMessageSymbols') && normal &&
-      message?.author?.id && !message.author.bot && !message.author.system) {
-    const current = statusMap(message.author.id)
-    const colors = DEVICES.map(([key]) => {
-      const status = current[key]
-      if (typeof status !== 'string' || !status) return 0
-      if (!setting('showOffline') && (status === 'offline' || status === 'invisible')) return 0
-      return setting('crimson') ? 1 : (STATUS_TINT[status] || 1)
-    })
-    if (colors.some(Boolean))
-      timestamp += TIMESTAMP_PREFIX + colors.map(c => String.fromCharCode(0xFE00 + c)).join('') + '\u2063'
-  }
-  if (timestamp === target.timestamp) return row
-  return { ...row, message: { ...target, timestamp } }
+  if (!message?.author?.id || message?.author?.bot || message?.author?.system ||
+      !target || typeof target.timestamp !== 'string' || !target.timestamp)
+    return row
+  if (message.type != null && message.type !== 0 && message.type !== 19 &&
+      message.type !== 'DEFAULT' && message.type !== 'REPLY') return row
+  const suffix = nativePlatformSuffix(message.author.id)
+  if (!suffix) return row
+  // The generator sometimes reuses row objects; don't repeatedly append badges.
+  if (!target.timestamp.includes(suffix))
+    target.timestamp += CHAT_SUFFIX_KEY + suffix
+  if (typeof target.timestampAccessibilityLabel === 'string' &&
+      !target.timestampAccessibilityLabel.includes(suffix))
+    target.timestampAccessibilityLabel += CHAT_SUFFIX_KEY + suffix
+  return row
 }
 
 // Create the filter only at START (Discord + Valenced's module runtime is ready).
@@ -472,11 +463,11 @@ function SettingsComponent({ api }) {
     ['profiles','Profile names'],
     ['dmHeader','Direct message header'],
     ['messageHeaders','React message author names'],
-    ['nativeMessageSymbols','Platform icons next to message timestamps (Android)'],
+    ['nativeMessageSymbols','Device emojis next to message timestamps'],
     ['crimson','Use crimson icons (matches AMOLED theme)'],
     ['showOffline','Show offline statuses if available'],
   ]
-  return React.createElement(Design.TableRowGroup, { title: 'Platform Indicators v0.3.2' },
+  return React.createElement(Design.TableRowGroup, { title: 'Platform Indicators v0.3.3' },
     ...rows.map(([key,label]) => React.createElement(Design.TableSwitchRow, {
       key, label, value: Boolean(s[key]),
       onValueChange: value => api.jsonStorage.set({ [key]: value }),
@@ -493,10 +484,9 @@ return plugin({
     patched = new WeakSet()
     try {
       initializeRuntime() // Never resolve React, patcher or Discord modules during preInit.
-      nativeTimestampReady = prepareNativeTimestamps(logger)
       addHooks(cleanup, logger)
       if (currentPlugin?.startedLate) currentPlugin.requireReload()
-      logger?.log?.('Platform Indicators v0.3.2 started')
+      logger?.log?.('Platform Indicators v0.3.3 started')
     } catch (error) {
       // A start exception would make Valenced automatically DISABLE the plugin.
       // Report it instead so the error remains visible in plugin details.
@@ -505,7 +495,6 @@ return plugin({
     }
   },
   stop() {
-    nativeTimestampReady = false
     storageApi = undefined
     pluginRef?.requireReload?.()
     pluginRef = undefined

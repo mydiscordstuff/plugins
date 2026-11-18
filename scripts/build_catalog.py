@@ -14,16 +14,13 @@ ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = os.environ.get("GITHUB_REPOSITORY", "mydiscordstuff/plugins")
 
 
-def read_files(folder, native):
+def read_files(folder):
     files = {}
     for path in sorted(folder.rglob("*")):
-        relative = path.relative_to(folder)
-        if native and relative.parts[0] == "src":
-            continue
         if path.is_symlink():
             raise ValueError(f"Plugin files must be regular files: {path}")
         if path.is_file():
-            files[relative.as_posix()] = path.read_bytes()
+            files[path.relative_to(folder).as_posix()] = path.read_bytes()
     return files
 
 
@@ -65,18 +62,8 @@ def build_catalog(destination):
         folder = manifest_path.parent
         if folder.is_symlink():
             raise ValueError(f"Plugin directory must be a regular directory: {folder}")
-        if manifest_path.is_symlink():
-            raise ValueError(f"Manifest must be a regular file: {manifest_path}")
-        manifest = json.loads(manifest_path.read_bytes())
-        native = manifest.get("dist", {}).get("android")
-        files = read_files(folder, native)
-        if native:
-            jar = files.get(native["path"])
-            if jar is None:
-                raise ValueError(f"Missing Android build for {manifest_path}: {native['path']}")
-            with zipfile.ZipFile(io.BytesIO(jar)) as compiled:
-                if not compiled.read("classes.dex").startswith(b"dex\n"):
-                    raise ValueError(f"Invalid Android DEX for {manifest_path}")
+        files = read_files(folder)
+        manifest = json.loads(files["manifest.json"])
         plugin_id, version = manifest["id"], manifest["version"]
         valid_id = re.fullmatch(r"[A-Za-z0-9-][A-Za-z0-9.-]*", plugin_id) and ".." not in plugin_id
         valid_version = re.fullmatch(r"[0-9]+(?:\.[0-9]+)*(?:-[a-z0-9]+)?", version)

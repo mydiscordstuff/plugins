@@ -2,13 +2,13 @@
   "format": 1,
   "id": "mydiscordstuff.platform-indicators",
   "name": "Platform Indicators (Valenced)",
-  "description": "Custom platform icons in DM lists, profiles, DM titles and beside Android message timestamps.",
+  "description": "Platform icons use presence colors by default. Device emojis appear beside message timestamps. Crimson icons are optional.",
   "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
   "contributors": [
     "MSMA (https://github.com/Martinz64/vendetta-plugins \"Original Vendetta plugin\")"
   ],
   "icon": "DevicesIcon",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "dependencies": {
     "valenced.api": {
       "version": ">=1 <2"
@@ -18,10 +18,6 @@
     }
   },
   "dist": {
-    "script": "index.js",
-    "android": {
-      "path": "plugin.jar",
-      "class": "mydiscordstuff.indicators.AndroidPlugin"
-    }
+    "script": "index.js"
   }
 }
