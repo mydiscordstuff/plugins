@@ -28,6 +28,33 @@
           }
         }
       }
+    },
+    "mydiscordstuff.user-radar": {
+      "name": "UserRadar",
+      "description": "Alertas de atividade do Discord no Android, com lista por ID, histórico local e horário silencioso.",
+      "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
+      "contributors": [
+        "k1ng0p (https://github.com/k1ng0p/UserRadar \"UserRadar original para Vencord\")"
+      ],
+      "channels": {
+        "latest": "1.0.0"
+      },
+      "versions": {
+        "1.0.0": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/481200e0c9989af17e38be4ebf44fefeb55dbc8562bd17e9ecb85209a7e481d9/mydiscordstuff.user-radar@1.0.0.zip",
+          "sha256": "481200e0c9989af17e38be4ebf44fefeb55dbc8562bd17e9ecb85209a7e481d9",
+          "size": 14476,
+          "dependencies": {
+            "valenced.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": ">=352.2"
+            },
+            "valenced.settings": {}
+          }
+        }
+      }
     }
   }
 }
