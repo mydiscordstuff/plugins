@@ -28,6 +28,29 @@
           }
         }
       }
+    },
+    "mydiscordstuff.account-switcher": {
+      "name": "Contas Rápidas (Valenced)",
+      "description": "Alterne entre contas do Discord pelo menu Valenced usando as sessões nativas. Não armazena senhas ou tokens. Limite nativo: 5 contas.",
+      "author": "mydiscordstuff",
+      "channels": {
+        "latest": "1.0.0"
+      },
+      "versions": {
+        "1.0.0": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.account-switcher@1.0.0.zip",
+          "sha256": "f929f07debabd021db97667f36fb689f183b74686c79ae6869bfd3ebad18923b",
+          "size": 4418,
+          "dependencies": {
+            "valenced.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": ">=352.2"
+            }
+          }
+        }
+      }
     }
   }
 }
