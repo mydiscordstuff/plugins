@@ -5,19 +5,19 @@
   "plugins": {
     "mydiscordstuff.platform-indicators": {
       "name": "Platform Indicators (Valenced)",
-      "description": "Bold icons for Desktop, Web, Mobile, Console and VR in member lists, DMs, profiles and compatible headers.",
+      "description": "Crimson platform icons in DMs, member lists and profiles; fixes automatic disabling after restart.",
       "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
       "contributors": [
         "MSMA (https://github.com/Martinz64/vendetta-plugins \"Original Vendetta plugin\")"
       ],
       "channels": {
-        "latest": "0.2.0"
+        "latest": "0.2.1"
       },
       "versions": {
-        "0.2.0": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.platform-indicators@0.2.0.zip",
-          "sha256": "fb2558419c599e2fdc1c964c27886f90642aa3f4098679baa612041f588e171b",
-          "size": 14540,
+        "0.2.1": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.platform-indicators@0.2.1.zip",
+          "sha256": "f4c0c90339f7bb502ab46494af72fb4e4d1563af280dd85a612a05a876d0cc82",
+          "size": 15194,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
