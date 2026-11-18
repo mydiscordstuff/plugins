@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "mydiscordstuff Plugins",
-  "description": "Custom Valenced mobile plugins maintained by mydiscordstuff: Platform Indicators, Contas Rapidas, QuestUI Mobile and OrionQuests Mobile.",
+  "description": "Platform Indicators for Valenced, maintained by mydiscordstuff.",
   "plugins": {
     "mydiscordstuff.platform-indicators": {
       "name": "Platform Indicators (Valenced)",
@@ -18,75 +18,6 @@
           "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.platform-indicators@0.3.1.zip",
           "sha256": "f78ed7f185087b89418bcdf010db21c70f00501272daac83e824e71625746fbb",
           "size": 17021,
-          "dependencies": {
-            "valenced.api": {
-              "version": ">=1 <2"
-            },
-            "discord": {
-              "version": ">=352.2"
-            }
-          }
-        }
-      }
-    },
-    "mydiscordstuff.account-switcher": {
-      "name": "Contas Rápidas (Valenced)",
-      "description": "Alterne entre contas do Discord pelo menu Valenced usando as sessões nativas. Não armazena senhas ou tokens. Limite nativo: 5 contas.",
-      "author": "mydiscordstuff",
-      "channels": {
-        "latest": "1.0.0"
-      },
-      "versions": {
-        "1.0.0": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.account-switcher@1.0.0.zip",
-          "sha256": "f929f07debabd021db97667f36fb689f183b74686c79ae6869bfd3ebad18923b",
-          "size": 4418,
-          "dependencies": {
-            "valenced.api": {
-              "version": ">=1 <2"
-            },
-            "discord": {
-              "version": ">=352.2"
-            }
-          }
-        }
-      }
-    },
-    "mydiscordstuff.questui-mobile": {
-      "name": "QuestUI • Mobile",
-      "description": "Painel mobile: missões, progresso, filtros, aceitar e resgatar recompensas; sem automação.",
-      "author": "mydiscordstuff (independent mobile implementation)",
-      "channels": {
-        "latest": "0.1.0"
-      },
-      "versions": {
-        "0.1.0": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.questui-mobile@0.1.0.zip",
-          "sha256": "4138038d3946302b2269768fcabd7546e6a30008cebe95d518ba3de83ded7bec",
-          "size": 5157,
-          "dependencies": {
-            "valenced.api": {
-              "version": ">=1 <2"
-            },
-            "discord": {
-              "version": ">=352.2"
-            }
-          }
-        }
-      }
-    },
-    "mydiscordstuff.orionquests-mobile": {
-      "name": "OrionQuests • Mobile",
-      "description": "Port experimental: controle de missões de vídeo no Android; sem suporte a jogos de PC/stream/console.",
-      "author": "mydiscordstuff (independent mobile implementation)",
-      "channels": {
-        "latest": "0.1.0"
-      },
-      "versions": {
-        "0.1.0": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/main/mydiscordstuff.orionquests-mobile@0.1.0.zip",
-          "sha256": "1434652045deac1b53f41fd56f16354f19dc289710ba1b7015eaa5a319f62505",
-          "size": 4594,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
