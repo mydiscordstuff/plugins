@@ -1,0 +1,263 @@
+({ default: (function () {
+  "use strict";
+  const durations = { slow: 60000, normal: 30000, fast: 15000 };
+  const defaults = { speed: "normal", paused: false };
+  const tokenRole = new Map();
+  function assign(role, names) {
+    for (const name of names.trim().split(/\s+/)) tokenRole.set(name, role);
+  }
+
+  // Discord uses different semantic names across screens and mobile releases.
+  assign("surface", `
+    BACKGROUND_BASE_LOW BACKGROUND_BASE_LOWER BACKGROUND_BASE_LOWEST BACKGROUND_BASE_HIGH
+    BACKGROUND_BASE_HIGHER BACKGROUND_BASE_HIGHEST BACKGROUND_PRIMARY BACKGROUND_SECONDARY
+    BACKGROUND_SECONDARY_ALT BACKGROUND_TERTIARY BACKGROUND_QUATERNARY BACKGROUND_MOBILE_PRIMARY
+    BACKGROUND_MOBILE_SECONDARY BACKGROUND_MOBILE_TERTIARY BACKGROUND_FLOATING
+    BACKGROUND_NESTED_FLOATING BACKGROUND_SURFACE_HIGH BACKGROUND_SURFACE_HIGHEST
+    BACKGROUND_MOD_SUBTLE BACKGROUND_MOD_MUTED BACKGROUND_MOD_NORMAL BACKGROUND_MOD_STRONG
+    BACKGROUND_ACCENT BACKGROUND_OVERLAY BACKGROUND_CONTENT_PRIMARY BACKGROUND_CONTENT_SECONDARY
+    BACKGROUND_APP_LAUNCHER_CARD_DEFAULT BACKGROUND_APP_LAUNCHER_ROW_DEFAULT PANEL_BG
+    BG_SURFACE_OVERLAY BG_SURFACE_OVERLAY_TMP BG_SURFACE_RAISED BG_BASE_PRIMARY BG_BASE_SECONDARY
+    BG_BASE_TERTIARY CARD_BACKGROUND_DEFAULT CARD_MUTED_BG CARD_MUTED_PRESSED_BG CARD_SECONDARY_BG
+    CARD_SECONDARY_BACKGROUND_DEFAULT CARD_SECONDARY_BACKGROUND_ACTIVE DEFAULT_BACKGROUND
+    DEFAULT_BACKGROUND_COLOR GUILD_FOLDER_BACKGROUND MOBILE_GUILDBAR_ICON_BACKGROUND_DEFAULT
+    MOBILE_EXPRESSION_PICKER_BACKGROUND_DEFAULT MOBILE_EMOJI_BUTTON_BACKGROUND
+    INPUT_BACKGROUND_DEFAULT MOBILE_SEGMENTED_CONTROL_BACKGROUND
+    MOBILE_CHANNEL_ITEM_BACKGROUND_DEFAULT REDESIGN_CHAT_INPUT_BACKGROUND
+    REDESIGN_INPUT_CONTROL_ACTIVE_BG ANDROID_NAVIGATION_SCRIM_BACKGROUND TABLEROW_BACKGROUND_DEFAULT
+    TABLEROW_BACKGROUND_PRESSED EMBED_BACKGROUND REACTION_BACKGROUND_DEFAULT STAGE_CARD_PILL_BG
+    CONTROL_ICON_ONLY_BACKGROUND_ACTIVE CONTROL_ICON_ONLY_BACKGROUND_DEFAULT
+    INTERACTIVE_BACKGROUND_DEFAULT INTERACTIVE_BACKGROUND_ACTIVE CHAT_INPUT_BACKGROUND
+    SEARCH_INPUT_BACKGROUND SURFACE_PRIMARY SURFACE_SECONDARY SURFACE_TERTIARY SURFACE_RAISED
+    BACKGROUND_INPUT BACKGROUND_SHELF BACKGROUND_POPOUT BACKGROUND_CONTEXT_MENU
+    REDESIGN_CHAT_INPUT_BACKGROUND_FOCUSED SEARCH_INPUT_BACKGROUND_DEFAULT
+    MOBILE_BOTTOM_NAV_BACKGROUND MOBILE_BOTTOM_NAVIGATION_BACKGROUND MOBILE_SEARCH_BACKGROUND
+    MOBILE_GUILD_HEADER_BACKGROUND BG_BASE_LOWEST BG_BASE_LOWER BG_BASE_LOW BG_SURFACE_LOW
+    BG_SURFACE_LOWER MOBILE_CHANNEL_HEADER_BACKGROUND CHAT_BACKGROUND CHANNELTEXTAREA_BACKGROUND
+    BACKGROUND_MESSAGE_NORMAL MODAL_BACKGROUND MODAL_FOOTER CHANNEL_BACKGROUND_DEFAULT
+    MOBILE_FLOATINGBAR_BACKGROUND MOBILE_FLOATINGBAR_BACKGROUND_HIGHER`);
+  assign("shade", `
+    MESSAGE_BACKGROUND_HOVER BACKGROUND_MESSAGE_HOVER CONTROL_SECONDARY_BACKGROUND_DEFAULT
+    CONTROL_SECONDARY_BACKGROUND_ACTIVE INTERACTIVE_BACKGROUND_HOVER INTERACTIVE_BACKGROUND_SELECTED
+    REDESIGN_BUTTON_SECONDARY_BACKGROUND REDESIGN_BUTTON_TERTIARY_BACKGROUND
+    REDESIGN_BUTTON_TERTIARY_PRESSED_BACKGROUND REDESIGN_BUTTON_SECONDARY_PRESSED_BACKGROUND
+    CONTROL_OVERLAY_SECONDARY_BACKGROUND_DEFAULT MOBILE_CHANNEL_ITEM_BACKGROUND_ACTIVE
+    REDESIGN_BUTTON_TERTIARY_HOVER_BACKGROUND BACKGROUND_MODIFIER_SELECTED BACKGROUND_MODIFIER_HOVER
+    BUTTON_SECONDARY_BACKGROUND BUTTON_FILLED_SECONDARY_BACKGROUND
+    CONTROL_SECONDARY_BACKGROUND_HOVER REDESIGN_BUTTON_SECONDARY_HOVER_BACKGROUND
+    BUTTON_SECONDARY_BACKGROUND_HOVER BUTTON_FILLED_SECONDARY_BACKGROUND_HOVER
+    BUTTON_SECONDARY_BACKGROUND_ACTIVE BUTTON_FILLED_SECONDARY_BACKGROUND_ACTIVE`);
+  assign("fill", `
+    REDESIGN_BUTTON_PRIMARY_PRESSED_BACKGROUND REDESIGN_BUTTON_PRIMARY_BACKGROUND
+    CONTROL_PRIMARY_BACKGROUND_DEFAULT CONTROL_PRIMARY_BACKGROUND_ACTIVE
+    CONTROL_OVERLAY_PRIMARY_BACKGROUND_DEFAULT BACKGROUND_BRAND BACKGROUND_BRAND_HOVER
+    BACKGROUND_BRAND_ACTIVE CONTROL_EXPRESSIVE_BACKGROUND_DEFAULT
+    CONTROL_EXPRESSIVE_BACKGROUND_ACTIVE REDESIGN_INPUT_CONTROL_SELECTED
+    CONTROL_CONNECTED_BACKGROUND_DEFAULT CONTROL_CONNECTED_BACKGROUND_ACTIVE
+    CHECKBOX_BACKGROUND_SELECTED SWITCH_BACKGROUND_SELECTED RADIO_BACKGROUND_SELECTED
+    BUTTON_FILLED_BRAND_BACKGROUND PROGRESSBAR_INDICATOR_BACKGROUND SLIDER_THUMB_BACKGROUND
+    SLIDER_TRACK_FILL BADGE_BACKGROUND_DEFAULT THREAD_CHANNEL_SPINE
+    BUTTON_FILLED_BRAND_BACKGROUND_HOVER BUTTON_FILLED_BRAND_BACKGROUND_ACTIVE
+    CONTROL_PRIMARY_BACKGROUND_HOVER REDESIGN_BUTTON_PRIMARY_HOVER_BACKGROUND
+    BUTTON_PRIMARY_BACKGROUND`);
+  assign("text", `
+    TEXT_NORMAL TEXT_DEFAULT TEXT_PRIMARY TEXT_STRONG MOBILE_TEXT_HEADING_PRIMARY
+    TEXT_HEADER_PRIMARY TEXT_BODY_PRIMARY TEXT_MESSAGE_DEFAULT REDESIGN_CHANNEL_NAME_TEXT
+    REDESIGN_CHANNEL_NAME_ACTIVE_TEXT CHANNEL_TEXT CHANNEL_TEXT_DEFAULT INTERACTIVE_TEXT_DEFAULT
+    INTERACTIVE_TEXT_HOVER INTERACTIVE_TEXT_ACTIVE INTERACTIVE_TEXT_SELECTED BUTTON_TEXT
+    BUTTON_TEXT_DEFAULT BUTTON_TEXT_ACTIVE MOBILE_TEXT_HEADING_DEFAULT MOBILE_TEXT_HEADING_BOLD
+    TEXT_BRAND TEXT_HEADING TEXT_MESSAGE_HEADING TEXT_DISPLAY TEXT_TITLE TEXT_LINK TEXT_LINK_DEFAULT
+    TEXT_LINK_HOVER TEXT_ACCENT MENTION_FOREGROUND MENTION_BACKGROUND_TEXT CHANNEL_ICON
+    CHANNEL_ICON_DEFAULT CHANNEL_ICON_ACTIVE INTERACTIVE_ICON_DEFAULT INTERACTIVE_ICON_HOVER
+    INTERACTIVE_ICON_ACTIVE INTERACTIVE_ICON_SELECTED MOBILE_HEADER_ICON_DEFAULT
+    MOBILE_HEADER_ICON_ACTIVE MOBILE_HEADER_ICON_HOVER ICON_DEFAULT ICON_PRIMARY ICON_SECONDARY
+    ICON_ACTIVE ICON_INTERACTIVE ICON_MUTED REDESIGN_CHANNEL_ICON CONTROL_ICON_DEFAULT
+    CONTROL_ICON_ACTIVE BUTTON_OUTLINE_BRAND_TEXT BUTTON_OUTLINE_BRAND_BORDER TEXT_ACCENT_DEFAULT
+    MOBILE_BOTTOM_NAV_ICON_DEFAULT MOBILE_BOTTOM_NAV_ICON_ACTIVE MOBILE_NAVIGATION_ICON_DEFAULT
+    MOBILE_NAVIGATION_ICON_ACTIVE INTERACTIVE_NORMAL CHANNELS_DEFAULT TEXT_CHAT_INPUT
+    MOBILE_TEXT_PRIMARY HEADER_PRIMARY INTERACTIVE_HOVER INTERACTIVE_ACTIVE`);
+  assign("muted", `
+    MOBILE_TEXT_HEADING_SECONDARY TEXT_HEADER_SECONDARY TEXT_BODY_SECONDARY TEXT_SUBTLE
+    TEXT_LOW_CONTRAST TEXT_MUTED TEXT_SECONDARY TEXT_TERTIARY TEXT_DISABLED TEXT_FAINT
+    TEXT_PLACEHOLDER TEXT_HINT REDESIGN_CHANNEL_NAME_MUTED_TEXT INTERACTIVE_MUTED CHANNEL_ICON_MUTED
+    INTERACTIVE_TEXT_MUTED MOBILE_TEXT_MUTED MOBILE_TEXT_SECONDARY TEXT_DEFAULT_SECONDARY
+    TEXT_SUBTLE_DEFAULT HEADER_SECONDARY INPUT_PLACEHOLDER_TEXT CHANNEL_TEXT_MUTED CHANNELS_MUTED`);
+  assign("label", `
+    BUTTON_TEXT_PRIMARY BUTTON_TEXT_SECONDARY REDESIGN_BUTTON_PRIMARY_TEXT
+    REDESIGN_BUTTON_SECONDARY_TEXT REDESIGN_BUTTON_TERTIARY_TEXT CONTROL_PRIMARY_TEXT_DEFAULT
+    CONTROL_PRIMARY_TEXT_ACTIVE CONTROL_SECONDARY_TEXT_DEFAULT CONTROL_SECONDARY_TEXT_ACTIVE
+    CONTROL_PRIMARY_FOREGROUND_DEFAULT CONTROL_PRIMARY_FOREGROUND_ACTIVE BADGE_TEXT_DEFAULT
+    CHECKBOX_ICON_SELECTED SWITCH_ICON_SELECTED RADIO_ICON_SELECTED
+    CONTROL_EXPRESSIVE_FOREGROUND_DEFAULT CONTROL_EXPRESSIVE_FOREGROUND_ACTIVE
+    BUTTON_FILLED_BRAND_TEXT BUTTON_FILLED_BRAND_TEXT_HOVER BUTTON_FILLED_BRAND_TEXT_ACTIVE
+    CONTROL_SECONDARY_FOREGROUND_DEFAULT CONTROL_SECONDARY_FOREGROUND_ACTIVE
+    CONTROL_SECONDARY_FOREGROUND_HOVER BUTTON_FILLED_SECONDARY_TEXT CONTROL_PRIMARY_FOREGROUND_HOVER
+    CONTROL_PRIMARY_TEXT_HOVER CONTROL_EXPRESSIVE_FOREGROUND_HOVER TEXT_ON_ACCENT
+    CONTROL_OVERLAY_PRIMARY_FOREGROUND_DEFAULT`);
+  assign("border", `
+    APP_FRAME_BORDER BORDER_MUTED BORDER_SUBTLE BORDER_NORMAL BORDER_STRONG BORDER_FAINT
+    BORDER_DEFAULT CARD_BORDER_DEFAULT CHAT_BORDER REACTION_BORDER_DEFAULT CHECKBOX_BORDER_DEFAULT
+    CHECKBOX_BORDER_SELECTED_DEFAULT CONTROL_OVERLAY_PRIMARY_BORDER_DEFAULT
+    CONTROL_OVERLAY_SECONDARY_BORDER_DEFAULT CONTROL_SECONDARY_BORDER_DEFAULT
+    CONTROL_SECONDARY_BORDER_ACTIVE CONTROL_PRIMARY_BORDER_DEFAULT CONTROL_PRIMARY_BORDER_ACTIVE
+    INPUT_BORDER_DEFAULT INPUT_BORDER_ACTIVE INPUT_BORDER_FOCUSED MOBILE_CHATINPUT_BORDER_DEFAULT
+    MOBILE_CHATINPUT_BORDER_ACTIVE MOBILE_COACHMARK_BORDER_DEFAULT MOBILE_COMMAND_BAR_DIVIDER
+    MOBILE_FLOATING_ACCESSORY_BORDER MOBILE_HEADER_BORDER STANDALONE_CHANNEL_HEADER_BORDER
+    RADIO_BORDER_DEFAULT SWITCH_BORDER_DEFAULT SWITCH_BORDER_SELECTED_DEFAULT
+    REDESIGN_BUTTON_SECONDARY_BORDER REDESIGN_BUTTON_PRIMARY_BORDER BUTTON_OUTLINE_BRAND_BOARDER
+    DIVIDER_COLOR SEPARATOR_COLOR BORDER_FOCUSED BORDER_ACTIVE INPUT_BORDER_HOVER
+    MOBILE_CHATINPUT_BORDER_FOCUSED REDESIGN_BUTTON_SECONDARY_HOVER_BORDER BORDER_CHANNEL_HEADER
+    MOBILE_BOTTOM_NAV_BORDER MOBILE_BOTTOM_NAVIGATION_BORDER DIVIDER_SUBTLE`);
+
+  // Interpolate around the wheel. Separate brightness ranges keep labels readable on fills.
+  const wheel = [[255,48,72], [255,151,25], [247,221,20], [44,218,102],
+    [14,219,220], [52,122,255], [159,72,255], [249,56,183]];
+  function paletteAt(phase) {
+    const position = phase * wheel.length;
+    const i = Math.floor(position) % wheel.length;
+    const fraction = position - Math.floor(position);
+    const rgb = wheel[i].map((v, c) => v + (wheel[(i + 1) % wheel.length][c] - v) * fraction);
+    function tint(low, high) {
+      return "#" + rgb.map(v => Math.round(low + (high - low) * v / 255)
+        .toString(16).padStart(2, "0")).join("");
+    }
+    return { surface: "#000000", text: tint(104, 255), muted: tint(99, 196),
+      label: tint(205, 255), fill: tint(10, 102), shade: tint(5, 49), border: tint(28, 115) };
+  }
+
+  function makeSession() {
+    const listeners = new Set();
+    const undo = [];
+    let palette = paletteAt(0), phase = 0, version = 1;
+    let duration = durations.normal, running = false, stopped = false;
+    let foreground = false, reduceMotion = true, paused = false, timer = null, lastTime;
+    function notify() {
+      version++;
+      for (const listener of listeners) listener();
+    }
+    function tick() {
+      const now = Date.now();
+      phase = (phase + Math.max(0, now - lastTime) / duration) % 1;
+      lastTime = now;
+      palette = paletteAt(phase);
+      notify();
+    }
+    function schedule() {
+      const animate = running && !stopped && foreground && !reduceMotion && !paused && listeners.size > 0;
+      if (animate && timer === null) {
+        lastTime = Date.now();
+        timer = setInterval(tick, 250);
+      } else if (!animate && timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+    function subscribe(listener) {
+      if (stopped) return () => {};
+      listeners.add(listener);
+      schedule();
+      return () => { listeners.delete(listener); schedule(); };
+    }
+    const snapshot = () => version;
+    const find = valenced.modules.finders;
+    const withProps = find.filters.withProps;
+    const seen = new WeakSet();
+    undo.push(find.getModules(withProps("RawColor", "SemanticColor"), tokens => {
+      const internal = tokens.default?.internal;
+      if (stopped || !internal?.resolveSemanticColor || !internal.getSemanticColorName || seen.has(internal)) return;
+      seen.add(internal);
+      undo.push(valenced.patcher.instead(internal, "resolveSemanticColor", (args, original) => {
+        if (!stopped && !args[2]?.isProfileTheme && args[1] != null) {
+          const role = tokenRole.get(internal.getSemanticColorName(args[1]));
+          if (role) return palette[role];
+        }
+        return Reflect.apply(original, internal, args);
+      }, { priority: 100 }));
+      notify();
+    }, { cached: true }));
+
+    undo.push(find.getModules(withProps("RootThemeContextProvider", "DisableCustomTheme"), mod => {
+      const Original = mod.RootThemeContextProvider;
+      if (stopped || typeof Original !== "function" || seen.has(mod)) return;
+      seen.add(mod);
+      // A separate component owns these hooks. Discord's hook order and child keys stay stable.
+      function RgbRoot(props) {
+        const React = valenced.react.React;
+        const frame = React.useSyncExternalStore(subscribe, snapshot);
+        const source = props.enabledExperiments;
+        const experiments = React.useMemo(() => stopped ? source :
+          [...(source || []), "mydiscordstuff-rgb:" + frame], [source, frame]);
+        return React.createElement(Original, { ...props, enabledExperiments: experiments });
+      }
+      mod.RootThemeContextProvider = RgbRoot;
+      undo.push(() => {
+        if (mod.RootThemeContextProvider === RgbRoot) mod.RootThemeContextProvider = Original;
+      });
+    }, { cached: true }));
+
+    return {
+      start({ jsonStorage, logger }) {
+        const { AccessibilityInfo, AppState } = valenced.react.ReactNative;
+        function settings() {
+          const value = jsonStorage.cache || defaults;
+          duration = durations[value.speed] || durations.normal;
+          paused = value.paused === true;
+          schedule();
+        }
+        undo.push(jsonStorage.subscribe(settings));
+        settings();
+        if (!jsonStorage.loaded) jsonStorage.get().then(settings).catch(e => logger.warn(e));
+        foreground = AppState.currentState === "active";
+        const stateSub = AppState.addEventListener("change", state => {
+          foreground = state === "active"; schedule();
+        });
+        undo.push(() => stateSub.remove());
+        let motionEvent = false;
+        const motionSub = AccessibilityInfo.addEventListener("reduceMotionChanged", value => {
+          motionEvent = true; reduceMotion = value; schedule();
+        });
+        undo.push(() => motionSub.remove());
+        AccessibilityInfo.isReduceMotionEnabled().then(value => {
+          if (!motionEvent && !stopped) { reduceMotion = value; schedule(); }
+        }).catch(e => logger.warn(e));
+        running = true;
+        schedule();
+      },
+      stop() {
+        stopped = true;
+        schedule();
+        try {
+          for (const remove of undo.reverse()) remove();
+        } finally {
+          notify();
+          listeners.clear();
+        }
+      },
+    };
+  }
+
+  let session;
+  return plugin({
+    jsonStorage: { default: defaults },
+    preInit({ cleanup, plugin: self }) {
+      session = makeSession();
+      const current = session;
+      cleanup(() => { current.stop(); if (session === current) session = undefined; });
+      if (self.startedLate) self.requireReload();
+    },
+    start(api) { session.start(api); },
+    SettingsComponent({ api }) {
+      const { React } = valenced.react;
+      const { TableRow, TableRowGroup, TableSwitchRow } = valenced.discord.design.Design;
+      const settings = api.jsonStorage.use() || defaults;
+      const rows = [["slow", "Lento"], ["normal", "Normal"], ["fast", "Rápido"]];
+      return React.createElement(TableRowGroup, { title: "Ciclo de cores" },
+        ...rows.map(([id, label]) => React.createElement(TableRow, { key: id,
+          label: label + " · " + durations[id] / 1000 + " s",
+          subLabel: (settings.speed || defaults.speed) === id ? "Selecionado" : undefined,
+          onPress: () => api.jsonStorage.set({ speed: id }) })),
+        React.createElement(TableSwitchRow, { key: "pause", label: "Pausar na cor atual",
+          value: settings.paused === true, onValueChange: paused => api.jsonStorage.set({ paused }) }));
+    },
+  });
+})() })

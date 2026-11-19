@@ -4,12 +4,17 @@ Cada plugin tem uma pasta em `plugins/` com seu código e `manifest.json`.
 
 | Plugin | Código-fonte |
 | --- | --- |
+| AMOLED RGB | [plugins/amoled-rgb/](plugins/amoled-rgb/) |
 | Platform Indicators | [plugins/platform-indicators/](plugins/platform-indicators/) |
 | UserRadar (Android) | [plugins/user-radar/](plugins/user-radar/) |
 
 ## Instalar no Valenced
 
 Abra **Configurações → Valenced → Plugins → ⚙️** e adicione o [endereço do catálogo](https://raw.githubusercontent.com/mydiscordstuff/plugins/main/index.json).
+
+## AMOLED RGB
+
+Ative **AMOLED RGB** em **Valenced → Plugins** e toque em **Reload App** na primeira instalação. Na engrenagem do plugin, selecione um ciclo de 15, 30 ou 60 segundos ou pause na cor atual. O fundo das telas compatíveis fica preto puro. O ciclo pausa em segundo plano e respeita a opção de reduzir movimento do celular. Ao desativar o plugin, o Discord volta a usar as cores do tema selecionado.
 
 ## Editar ou adicionar um plugin
 
