@@ -6,7 +6,6 @@ Cada plugin tem uma pasta em `plugins/` com seu código e `manifest.json`.
 | --- | --- |
 | Platform Indicators | [plugins/platform-indicators/](plugins/platform-indicators/) |
 | UserRadar (Android) | [plugins/user-radar/](plugins/user-radar/) |
-| PinDMs | [plugins/pin-dms/](plugins/pin-dms/) |
 
 ## Instalar no Valenced
 
@@ -20,12 +19,6 @@ O GitHub Actions encontra as pastas com `manifest.json`, empacota os arquivos e 
 
 ## UserRadar no Android
 
-Abra **Configurações → Valenced → UserRadar**, adicione o ID de uma pessoa e toque em **Enviar notificação de teste**. Em **Notificações do Android**, você pode permitir alertas e ajustar o som do canal UserRadar. A lista e o histórico são locais e separados por conta. Os alertas dependem dos eventos que chegam à sessão do Discord, inclusive em segundo plano. Com o app encerrado ou a conexão suspensa, o plugin não recebe eventos.
+Abra **Configurações → Valenced → UserRadar**, adicione o ID de uma pessoa e toque em **Enviar notificação de teste**. Em **Notificações do Android**, você pode permitir alertas e ajustar o som. Após um reload, se o canal próprio do UserRadar estiver indisponível, o plugin pode entregar os alertas pelas notificações locais do Discord. A lista e o histórico são locais e separados por conta. Os alertas dependem dos eventos que chegam à sessão do Discord, inclusive em segundo plano. Com o app encerrado ou a conexão suspensa, o plugin não recebe eventos.
 
 Adaptação independente inspirada no [UserRadar para Vencord, de k1ng0p](https://github.com/k1ng0p/UserRadar).
-
-## PinDMs no celular
-
-Abra **Configurações → Valenced → PinDMs → Criar categoria** para escolher o nome e a cor. Em **Conversas**, selecione uma DM individual ou em grupo para movê-la. Você também pode salvar um apelido e uma cor só para a sua lista. Na aba de mensagens, toque no título de uma categoria para recolher ou expandir. Cada conta salva sua organização no aparelho.
-
-Implementação mobile independente inspirada no [PinDMs do Vencord](https://vencord.dev/plugins/PinDMs).

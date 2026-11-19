@@ -30,6 +30,60 @@
     catch { return "unavailable"; }
   }
 
+  const NOTIFICATION_PERMISSION = "android.permission.POST_NOTIFICATIONS";
+  const CHANNEL = "mydiscordstuff.user-radar.activity.v1";
+  function discordModule(name) {
+    const rn = valenced.react.ReactNative;
+    try {
+      const mod = rn.NativeModules?.[name] ?? rn.TurboModuleRegistry?.get?.(name);
+      if (mod) return mod;
+    } catch {}
+    try { return valenced.modules.native.getNativeModule(name); } catch { return null; }
+  }
+
+  async function fallbackState(push) {
+    if (!push?.presentLocalNotification) return "unavailable";
+    const rn = valenced.react.ReactNative;
+    if (Number(rn.Platform.Version) >= 33 && !(await rn.PermissionsAndroid.check(NOTIFICATION_PERMISSION))) return "app-blocked";
+    if (Number(rn.Platform.Version) < 33) {
+      const authorization = await discordModule("NativePermissionManagerModule")?.getNotificationAuthorizationStatus?.();
+      if (authorization === 1) return "app-blocked"; // Discord NotificationAuthorizationStatus.DENIED
+    }
+    const channels = discordModule("NativeNotifSettingsModule")?.getAndroidNotifChannelStates?.();
+    if (Array.isArray(channels) && channels.some(ch => ch.channelId === CHANNEL && ch.importance === 0)) return "channel-blocked";
+    return "discord-ready";
+  }
+
+  // Probe on each use: a reload can replace either the RN instance or the plugin bridge.
+  // Only switch transports before a post, so a failed acknowledgement cannot double-post.
+  async function notifications(args, stillWanted = () => true) {
+    try {
+      if (valenced.react.ReactNative.Platform.OS !== "android") return "unavailable";
+      const state = bridge("state");
+      if (state === "app-blocked" || state === "channel-blocked") return state;
+      if (state === "ready") {
+        if (!args || !stillWanted()) return state;
+        const result = bridge("notify", args);
+        return result === "unavailable" ? "send-error" : result;
+      }
+      const push = discordModule("PushNotificationAndroid");
+      const fallback = await fallbackState(push);
+      if (!args || fallback !== "discord-ready" || !stillWanted()) return fallback;
+      const [title, body] = args;
+      await push.presentLocalNotification({ category: "local", alertTitle: title, alertBody: body, userInfo: {} });
+      return "discord-sent";
+    } catch { return "send-error"; }
+  }
+
+  async function openNotificationSettings() {
+    if (bridge("settings") === true) return;
+    try {
+      const device = discordModule("NativeDeviceSettingsModule");
+      if (device?.openNotificationSettings) { await device.openNotificationSettings(); return; }
+    } catch {}
+    await valenced.react.ReactNative.Linking.openSettings();
+  }
+
   function makeSession(storage, logger) {
     const { Stores } = valenced.discord.flux;
     let accounts = {}, loaded = false, account = null, suspended = false, dead = false;
@@ -93,7 +147,13 @@
       if (recent.size > 1024) recent.delete(recent.keys().next().value);
       save({ ...p, log: [{ id, category, body, at: now }, ...p.log].slice(0, MAX_LOG) });
       if (p.enabled && !u.muted && !quietNow(p, new Date(now))) {
-        bridge("notify", ["UserRadar · " + display(id, u), body, id]);
+        const owner = account;
+        void notifications(["UserRadar · " + display(id, u), body, id], () => {
+          if (dead || syncAccount() !== owner) return false;
+          const latest = prefs(), user = person(id);
+          return !!user && !user.muted && latest.enabled && !quietNow(latest, new Date())
+            && (user.overrides?.[category] ?? latest.categories[category]);
+        });
       }
     }
     function snapshot(id) {
@@ -274,7 +334,10 @@
     ready: "Canal de notificações ativo.",
     "app-blocked": "O Android bloqueou as notificações do Discord.",
     "channel-blocked": "O canal UserRadar está desativado no Android.",
-    unavailable: "O módulo Android ainda não carregou. Reinicie o Discord após instalar o plugin.",
+    "discord-ready": "Alertas disponíveis pelas notificações locais do Discord.",
+    "discord-sent": "Teste encaminhado ao Discord. Confira a área de notificações do Android.",
+    "send-error": "Falha ao acessar as notificações. Toque para testar novamente.",
+    unavailable: "Nenhum serviço de notificações disponível nesta sessão. Toque para verificar novamente.",
     sent: "Teste enviado. Confira a área de notificações do Android.",
   };
   function RadarScreen({ embedded = false } = {}) {
@@ -287,13 +350,18 @@
     const [expanded, setExpanded] = R.useState(null), [history, setHistory] = R.useState(false);
     const [search, setSearch] = R.useState(""), [limit, setLimit] = R.useState(20);
     const session = active;
+    const request = R.useRef(0);
     R.useEffect(() => {
       const off = session?.subscribe(refresh);
       session?.syncAccount(); refresh();
-      const check = () => setSystem(bridge("state"));
+      const check = async () => {
+        const n = ++request.current;
+        const status = await notifications();
+        if (n === request.current) setSystem(status);
+      };
       check();
       const sub = N.AppState.addEventListener("change", s => { if (s === "active") { check(); session?.syncAccount(); } });
-      return () => { off?.(); sub?.remove?.(); };
+      return () => { request.current++; off?.(); sub?.remove?.(); };
     }, [session]);
     const p = session?.prefs();
     const label = (value, key = String(value)) => h(Text, { key, variant: "text-sm/medium", color: "text-muted" }, value);
@@ -319,11 +387,14 @@
     }
     async function testNotification() {
       try {
-        if (bridge("state") === "app-blocked" && N.Platform.OS === "android" && Number(N.Platform.Version) >= 33) {
-          await N.PermissionsAndroid.request("android.permission.POST_NOTIFICATIONS");
+        if (await notifications() === "app-blocked" && Number(N.Platform.Version) >= 33) {
+          await N.PermissionsAndroid.request(NOTIFICATION_PERMISSION);
         }
-        setSystem(bridge("notify", ["UserRadar", "Os alertas do UserRadar estão funcionando neste celular.", "test"]));
-      } catch { setSystem(bridge("state")); }
+        if (active !== session) return;
+        const n = ++request.current;
+        const status = await notifications(["UserRadar", "Os alertas do UserRadar estão funcionando neste celular.", "test"]);
+        if (n === request.current) setSystem(status);
+      } catch { setSystem("send-error"); }
     }
     function remove(u) {
       N.Alert.alert("Remover " + session.display(u.id, u) + "?", "O histórico dessa pessoa também será apagado.", [
@@ -349,8 +420,8 @@
         toggle("enabled", "Receber notificações no celular", p.enabled, v => setOption("enabled", v)),
         row("test", "Enviar notificação de teste", testNotification, ANDROID_STATE[system] || "Verificar alertas do Android."),
         row("settings", "Notificações do Android", () => {
-          if (bridge("settings") !== true) N.Linking.openSettings().catch(() => setSystem("unavailable"));
-        }, "Permissão, som e vibração do canal UserRadar.")),
+          openNotificationSettings().catch(() => setSystem("send-error"));
+        }, "Ajuste a permissão, o som e a vibração das notificações.")),
       group("Horário silencioso", toggle("quiet", "Silenciar durante um período", p.quiet, v => setOption("quiet", v))),
       ...(p.quiet ? [clock("from", p.from), clock("until", p.until),
         ...(p.from === p.until ? [label("Horários iguais silenciam as notificações o dia inteiro.")] : [])] : []),

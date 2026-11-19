@@ -2,6 +2,7 @@
 
 package mydiscordstuff.radar
 
+import android.app.Application
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -11,12 +12,13 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import java.util.concurrent.atomic.AtomicReference
 import app.valenced.plugins.plugin
 import app.valenced.xposed.api.registerNativeMethod
 
 private const val CHANNEL = "mydiscordstuff.user-radar.activity.v1"
 private const val BRIDGE = "mydiscordstuff.user-radar"
-@Volatile private var app: Context? = null
+@Volatile private var session: AtomicReference<Context?>? = null
 
 private fun manager(ctx: Context): NotificationManager =
     ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -81,10 +83,14 @@ private fun openSettings(ctx: Context): Boolean {
 
 val userRadar = plugin {
     start {
-        withAppContext { app = it.applicationContext }
-        registerNativeMethod("$BRIDGE.state") { app?.let(::state) ?: "unavailable" }
-        registerNativeMethod("$BRIDGE.notify") { args -> app?.let { post(it, args) } ?: "unavailable" }
-        registerNativeMethod("$BRIDGE.settings") { app?.let(::openSettings) ?: false }
+        val context = AtomicReference<Context?>()
+        session = context
+        // attachBaseContext can run before Android sets Application.applicationContext.
+        withAppContext { host -> context.compareAndSet(null, (host as? Application) ?: host.applicationContext) }
+        withAppActivity { activity -> context.compareAndSet(null, activity.application) }
+        registerNativeMethod("$BRIDGE.state") { session?.get()?.let(::state) ?: "unavailable" }
+        registerNativeMethod("$BRIDGE.notify") { args -> session?.get()?.let { post(it, args) } ?: "unavailable" }
+        registerNativeMethod("$BRIDGE.settings") { session?.get()?.let(::openSettings) ?: false }
     }
-    stop { app = null }
+    stop { session = null }
 }

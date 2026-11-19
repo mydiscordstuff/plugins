@@ -7,8 +7,8 @@ const bundle = fs.readFileSync(path.join(__dirname, "../../index.js"), "utf8");
 const me = "100000000000000001", who = "200000000000000002", other = "300000000000000003";
 const turn = () => new Promise(resolve => setImmediate(resolve));
 
-async function host() {
-  let owner = me, data = { accounts: {} }, route = null, section = null, blocked = false;
+async function host(options = {}) {
+  let owner = me, data = options.data || { accounts: {} }, route = null, section = null, blocked = false;
   const errors = [], notifications = [], hooks = new Map(), cleanup = [];
   const slots = [], effects = [], disposers = [];
   let slot = 0;
@@ -19,11 +19,14 @@ async function host() {
       if (!(i in slots)) slots[i] = initial;
       return [slots[i], v => { slots[i] = typeof v === "function" ? v(slots[i]) : v; }];
     },
+    useRef(initial) { return R.useState({ current: initial })[0]; },
     useReducer(fn, initial) { const [v, set] = R.useState(initial); return [v, a => set(x => fn(x, a))]; },
     useEffect(fn, deps) { const i = slot++; if (!slots[i]) { slots[i] = deps; effects.push(fn); } },
   };
   const native = { TextInput: "input", View: "view", ScrollView: "scroll", Keyboard: { dismiss() {} },
-    AppState: { addEventListener() { return { remove() {} }; } }, Platform: { OS: "android", Version: 33 } };
+    AppState: { addEventListener() { return { remove() {} }; } }, Platform: { OS: "android", Version: options.version || 33 },
+    PermissionsAndroid: { check: async () => options.granted !== false, request: async () => { options.requests = (options.requests || 0) + 1; } },
+    NativeModules: options.modules || {} };
   const channel = { id: "dm", type: 1 };
   const stores = {
     UserStore: { getCurrentUser: () => ({ id: owner }), getUser: id => ({ id, username: "Amigo" }) },
@@ -34,6 +37,9 @@ async function host() {
   const env = {
     react: { React: R, ReactNative: native }, components: {},
     modules: { native: { callNativeMethodSync(method, args) {
+      if (options.missing) throw Error("Native bridge method not registered: " + method);
+      if (options.noContext) return "unavailable";
+      if (options.channelBlocked) return "channel-blocked";
       if (method.endsWith(".notify")) { notifications.push(args); return "sent"; }
       return "ready";
     } } },
@@ -137,4 +143,45 @@ test("optional typing, edit, deletion and activity alerts retain no message text
   assert.equal(h.notifications.length, 5);
   await h.stop();
   assert.ok(!JSON.stringify(h.data()).includes("segredo"));
+});
+
+test("a new JS session retains the watchlist and posts tests and activity with the Discord Android module", async () => {
+  const first = await host();
+  first.add(who); await first.stop();
+  const posts = [], options = { data: first.data(), missing: true, modules: {
+    PushNotificationAndroid: { presentLocalNotification: payload => posts.push(payload) },
+  } };
+  const next = await host(options);
+  const button = () => next.field(n => n.props.label === "Enviar notificação de teste");
+  await button().onPress();
+  assert.match(button().subLabel, /encaminhado ao Discord/);
+  next.message("after-reload"); await turn();
+  assert.equal(posts.length, 2); assert.equal(posts[0].alertTitle, "UserRadar");
+  assert.match(posts[1].alertBody, /mensagem/); assert.equal(posts[1].category, "local");
+  assert.equal(next.notifications.length, 0);
+  options.missing = false; options.noContext = true;
+  next.message("waiting-context"); await turn(); assert.equal(posts.length, 3);
+  options.noContext = false;
+  next.message("native-ready"); await turn();
+  assert.equal(next.notifications.length, 1); assert.equal(posts.length, 3);
+  await next.stop();
+});
+
+test("reload fallback respects app permissions, a muted channel and session lifetime", async () => {
+  const posts = [], channels = [];
+  const options = { missing: true, granted: false, modules: {
+    PushNotificationAndroid: { presentLocalNotification: p => posts.push(p) },
+    NativeNotifSettingsModule: { getAndroidNotifChannelStates: () => channels },
+  } };
+  const h = await host(options); h.add(who);
+  const button = () => h.field(n => n.props.label === "Enviar notificação de teste");
+  h.message("denied"); await turn(); assert.equal(options.requests, undefined);
+  await button().onPress(); assert.equal(options.requests, 1);
+  assert.match(button().subLabel, /bloqueou/);
+  options.granted = true; channels.push({channelId:"mydiscordstuff.user-radar.activity.v1",importance:0});
+  await button().onPress(); assert.match(button().subLabel, /desativado/);
+  channels.length = 0; options.missing = false; options.channelBlocked = true;
+  await button().onPress(); assert.equal(posts.length, 0);
+  options.missing = true;
+  h.message("stop-in-flight"); await h.stop(); assert.equal(posts.length, 0);
 });
