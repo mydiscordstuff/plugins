@@ -4,17 +4,17 @@
   "description": "Plugins para o Valenced mantidos por mydiscordstuff.",
   "plugins": {
     "mydiscordstuff.amoled-rgb": {
-      "name": "AMOLED RGB",
-      "description": "Fundo preto puro com cores que percorrem o arco-íris nas letras e nos botões.",
+      "name": "desmaiaram themes",
+      "description": "Editor de temas para fundo, botões e texto, com cores HEX, efeitos RGB e velocidade ajustável.",
       "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
       "channels": {
-        "latest": "1.0.0"
+        "latest": "1.1.0"
       },
       "versions": {
-        "1.0.0": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/14e894028902dbd7981829c1f17622154d32466819d7225f3f997781fcc1109c/mydiscordstuff.amoled-rgb@1.0.0.zip",
-          "sha256": "14e894028902dbd7981829c1f17622154d32466819d7225f3f997781fcc1109c",
-          "size": 4855,
+        "1.1.0": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/e40a841233ff770b16950f62f49409ffc7fe97755aacdc4fab9171cefc4b581c/mydiscordstuff.amoled-rgb@1.1.0.zip",
+          "sha256": "e40a841233ff770b16950f62f49409ffc7fe97755aacdc4fab9171cefc4b581c",
+          "size": 7528,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
