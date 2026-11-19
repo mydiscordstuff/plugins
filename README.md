@@ -14,11 +14,11 @@ Abra **Configurações → Valenced → Plugins → ⚙️** e adicione o [ender
 
 ## desmaiaram themes
 
-Atualize o antigo **AMOLED RGB** em **Valenced → Plugins** e use **Reload App**. Abra a engrenagem de **desmaiaram themes**. Na primeira instalação, o fundo é preto puro e o arco-íris colore botões e texto. A atualização aproveita a velocidade e a pausa já salvas.
+Em **Valenced → Plugins**, atualize **desmaiaram themes**, use **Reload App** e abra a engrenagem do plugin.
 
-Escolha **Arco-íris suave**, **Chroma pulsante**, **Onda de cores**, **Pulso da cor escolhida** ou **Cores fixas**. A onda percorre as áreas animadas em momentos diferentes. A duração de um ciclo varia de 5 a 120 segundos, com nove opções.
+Com **Tema RGB** ligado, o fundo das telas temáticas fica preto puro (`#000000`). Texto, botões, ícones, bordas e indicadores acompanham o efeito, inclusive quando você já salvou cores fixas. Escolha **Arco-íris suave**, **Chroma pulsante**, **Onda de cores** ou **Pulso RGB**, com nove velocidades de 5 a 120 segundos. A pausa congela o efeito. A animação respeita a opção de reduzir movimento do celular e pausa em segundo plano.
 
-Toque em **Fundo**, **Botões** ou **Texto** para escolher uma amostra ou aplicar uma cor HEX. Cada área tem seu próprio controle de animação. No pulso, sua cor vira a base do efeito. Nos modos de arco-íris, escolher uma cor fixa pausa só aquela área. A animação respeita a opção de reduzir movimento do celular e pausa em segundo plano. Ao desativar o plugin, o tema anterior volta nas telas compatíveis.
+Desligue **Tema RGB** para acessar **Fundo**, **Botões** e **Texto**. Escolha uma amostra ou digite uma cor HEX. Suas três cores ficam guardadas quando você volta ao RGB. O efeito alcança as cores que o Discord consulta pelo sistema de temas. Imagens, emojis e componentes nativos com cores próprias podem manter a aparência original.
 
 ## Editar ou adicionar um plugin
 

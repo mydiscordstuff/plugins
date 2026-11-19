@@ -2,9 +2,9 @@
   "format": 1,
   "id": "mydiscordstuff.amoled-rgb",
   "name": "desmaiaram themes",
-  "description": "Editor de temas para fundo, botões e texto, com cores HEX, efeitos RGB e velocidade ajustável.",
+  "description": "RGB animado sobre fundo AMOLED preto puro, com nove velocidades e editor de cores fixas ao desligar o RGB.",
   "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "icon": "PaintPaletteIcon",
   "dependencies": {
     "valenced.api": {

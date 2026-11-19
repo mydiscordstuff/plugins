@@ -4,16 +4,15 @@
     s45: 45000, slow: 60000, s90: 90000, s120: 120000 };
   const effects = {
     rainbow: "Arco-íris suave", chroma: "Chroma pulsante", wave: "Onda de cores",
-    pulse: "Pulso da cor escolhida", fixed: "Cores fixas",
+    pulse: "Pulso RGB",
   };
   const areas = [
     { key: "background", title: "Fundo", offset: 0 },
     { key: "buttons", title: "Botões", offset: 1 / 3 },
     { key: "text", title: "Texto", offset: 2 / 3 },
   ];
-  const defaults = { speed: "normal", paused: false, effect: "rainbow",
-    background: "#000000", buttons: "#6949aa", text: "#e2c9ff",
-    backgroundAnimated: false, buttonsAnimated: true, textAnimated: true };
+  const defaults = { speed: "normal", paused: false, rgb: true, effect: "rainbow",
+    background: "#000000", buttons: "#6949aa", text: "#e2c9ff" };
   const owns = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
   function canonicalHex(value) {
     if (typeof value !== "string") return null;
@@ -25,13 +24,12 @@
   function readSettings(value) {
     const result = { ...defaults };
     if (!value) return result;
+    result.rgb = typeof value.rgb === "boolean" ? value.rgb : value.effect !== "fixed";
     if (owns(effects, value.effect)) result.effect = value.effect;
     if (owns(durations, value.speed)) result.speed = value.speed;
     result.paused = value.paused === true;
     for (const { key } of areas) {
       result[key] = canonicalHex(value[key]) || defaults[key];
-      const flag = key + "Animated";
-      if (typeof value[flag] === "boolean") result[flag] = value[flag];
     }
     return result;
   }
@@ -162,17 +160,17 @@
   }
   function frameColor(area, phase, s) {
     const key = area.key;
-    const base = rgbOf(s[key]);
-    if (s.effect === "fixed" || !s[key + "Animated"]) return base;
+    if (!s.rgb) return rgbOf(s[key]);
+    if (key === "background") return black;
     const pulse = (1 - Math.cos(phase * 2 * Math.PI)) / 2;
-    if (s.effect === "pulse") return mix(base, white, 0.42 * pulse);
     const position = ((phase + (s.effect === "wave" ? area.offset : 0)) % 1) * wheel.length;
     const i = Math.floor(position);
     const hue = mix(wheel[i], wheel[(i + 1) % wheel.length], position - i);
-    const ranges = { background: [1, 42], buttons: [10, 102], text: [104, 255] };
+    const ranges = { buttons: [10, 102], text: [104, 255] };
     const [low, high] = ranges[key];
     const rgb = hue.map(v => low + (high - low) * v / 255);
-    return s.effect === "chroma" ? mix(rgb, black, 0.35 * pulse) : rgb;
+    if (s.effect === "pulse") return mix(rgb, key === "text" ? white : [96, 96, 96], 0.50 * pulse);
+    return s.effect === "chroma" ? mix(rgb, black, (key === "text" ? 0.15 : 0.35) * pulse) : rgb;
   }
   function paletteAt(phase, s) {
     const [surface, fill, text] = areas.map(area => frameColor(area, phase, s));
@@ -186,6 +184,68 @@
   }
   for (const [name, role] of tokenRole) {
     if (role === "label" && /SECONDARY|TERTIARY/.test(name)) tokenRole.set(name, "secondaryLabel");
+  }
+
+  // Tokens added by Discord should pick up the effect even before they have an explicit entry.
+  const rgbRoles = new Map();
+  function rgbRole(name) {
+    if (rgbRoles.has(name)) return rgbRoles.get(name);
+    const known = tokenRole.get(name);
+    const control = /BUTTON|CONTROL|SWITCH|RADIO|CHECKBOX|BADGE|REACTION|SLIDER|PROGRESS|CHIP|PILL/.test(name);
+    const background = /BACKGROUND|BACKDROP|SCRIM|SURFACE|(?:^|_)BG(?:_|$)/.test(name);
+    let role;
+    if (/SPOILER.*HIDDEN/.test(name)) role = "surface";
+    else if (/BORDER|OUTLINE|DIVIDER|SEPARATOR|STROKE/.test(name)) role = known || "border";
+    else if (!known && /FOREGROUND|TEXT_ON_|ICON_ON_/.test(name)) role = control ? "label" : "text";
+    else if (control && background) role = known === "shade" || /SECONDARY|TERTIARY/.test(name) ? "shade" : "fill";
+    else if (known === "surface" || (background && known !== "fill" && !control)) role = "surface";
+    else if (known) role = known;
+    else if (control && /TEXT|LABEL|ICON/.test(name)) role = /SECONDARY|TERTIARY/.test(name) ? "secondaryLabel" : "label";
+    else if (/MUTED|SUBTLE|DISABLED|PLACEHOLDER/.test(name)) role = "muted";
+    else role = "text";
+    rgbRoles.set(name, role);
+    return role;
+  }
+
+  function keepAlpha(color, original) {
+    if (original === "transparent") return original;
+    if (typeof original !== "string") return color;
+    if (/^#[0-9a-f]{8}$/i.test(original)) return color + original.slice(-2);
+    if (/^#[0-9a-f]{4}$/i.test(original)) return color + original.slice(-1).repeat(2);
+    const rgba = /^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\s*\)$/i.exec(original);
+    if (rgba) return color + Math.round(Math.min(1, Number(rgba[1])) * 255).toString(16).padStart(2, "0");
+    return color;
+  }
+
+  // Some icons read RawColor directly. Keep writes from other themes underneath the RGB layer.
+  function patchRawColors(raw, getPalette) {
+    const restore = [];
+    for (const name of Object.keys(raw || {})) {
+      const neutral = /^(?:OPACITY_)?(?:PRIMARY|PLUM|NEUTRAL)_/.test(name);
+      if (!neutral && !/^(?:OPACITY_)?(BRAND|BLURPLE|RED|ORANGE|YELLOW|GREEN|BLUE|PURPLE|PINK|FUCHSIA|TEAL|CYAN|GOLD|STATUS)(_|$)/.test(name)) continue;
+      const desc = Object.getOwnPropertyDescriptor(raw, name);
+      if (!desc?.configurable || !desc.writable || typeof desc.value !== "string") continue;
+      function tone(value) {
+        if (typeof value !== "string") return null;
+        const match = /^#([a-f0-9]{6})(?:[a-f0-9]{2})?$/i.exec(value);
+        if (!match) return neutral ? null : "text";
+        const light = luminance(rgbOf("#" + match[1]));
+        if (neutral) return light <= 0.16 ? "surface" : light < 0.46 ? "muted" : "text";
+        return light < 0.04 ? "shade" : light < 0.14 ? "fill" : light < 0.28 ? "border" : "text";
+      }
+      let base = desc.value, role = tone(base);
+      const get = () => {
+        const colors = getPalette();
+        return colors && role ? keepAlpha(colors[role], base) : base;
+      };
+      Object.defineProperty(raw, name, { enumerable: desc.enumerable, configurable: true,
+        get, set(value) { base = value; role = tone(value); } });
+      restore.push(() => {
+        if (Object.getOwnPropertyDescriptor(raw, name)?.get === get)
+          Object.defineProperty(raw, name, { ...desc, value: base });
+      });
+    }
+    return () => { for (const remove of restore) remove(); };
   }
 
   function makeSession() {
@@ -207,8 +267,7 @@
       notify();
     }
     function schedule() {
-      const hasEffect = options.effect !== "fixed" && areas.some(({ key }) => options[key + "Animated"]);
-      const animate = hasEffect && running && !stopped && foreground && !reduceMotion && !options.paused && listeners.size > 0;
+      const animate = options.rgb && running && !stopped && foreground && !reduceMotion && !options.paused && listeners.size > 0;
       if (animate && timer === null) {
         lastTime = Date.now();
         timer = setInterval(tick, 250);
@@ -231,10 +290,19 @@
       const internal = tokens.default?.internal;
       if (stopped || !internal?.resolveSemanticColor || !internal.getSemanticColorName || seen.has(internal)) return;
       seen.add(internal);
+      undo.push(patchRawColors(tokens.RawColor, () => !stopped && options.rgb ? palette : null));
       undo.push(valenced.patcher.instead(internal, "resolveSemanticColor", (args, original) => {
-        if (!stopped && !args[2]?.isProfileTheme && args[1] != null) {
-          const role = tokenRole.get(internal.getSemanticColorName(args[1]));
-          if (role) return palette[role];
+        if (!stopped && args[1] != null) {
+          const name = internal.getSemanticColorName(args[1]);
+          if (typeof name === "string" && name.length) {
+            if (options.rgb) {
+              const role = rgbRole(name);
+              if (role === "surface" && !/SCRIM|OVERLAY|TRANSPAREN/.test(name)) return palette.surface;
+              return keepAlpha(palette[role], Reflect.apply(original, internal, args));
+            }
+            const role = !args[2]?.isProfileTheme && tokenRole.get(name);
+            if (role) return palette[role];
+          }
         }
         return Reflect.apply(original, internal, args);
       }, { priority: 100 }));
@@ -261,6 +329,7 @@
     }, { cached: true }));
 
     return {
+      subscribe, getPalette: () => palette,
       start({ jsonStorage, logger }) {
         const { AccessibilityInfo, AppState } = valenced.react.ReactNative;
         function settings() {
@@ -307,28 +376,25 @@
   const card = { backgroundColor: "#17171e", borderRadius: 12, padding: 14, gap: 10 };
   const ink = { color: "#f5f4ff", fontSize: 16 };
   const hint = { color: "#c8c5d6", fontSize: 14 };
-  function Choice({ title, selected, onPress }) {
+  function Choice({ title, selected, onPress, colors }) {
     const { React, ReactNative: N } = valenced.react;
     return React.createElement(N.Pressable, { onPress, accessibilityRole: "radio",
       accessibilityState: { checked: selected }, style: { paddingHorizontal: 12, minHeight: 44,
-        justifyContent: "center", backgroundColor: selected ? "#634b96" : "#2d2b35", borderRadius: 8 } },
-      React.createElement(N.Text, { style: ink }, title));
+        justifyContent: "center", backgroundColor: selected ? colors.fill : colors.shade, borderRadius: 8 } },
+      React.createElement(N.Text, { style: { ...ink, color: selected ? colors.label : colors.secondaryLabel } }, title));
   }
 
   function ColorEditor({ area, options, save }) {
     const { React, ReactNative: N } = valenced.react;
     const h = React.createElement;
-    const { key, title } = area, current = options[key], flag = key + "Animated";
+    const { key, title } = area, current = options[key];
     const [open, setOpen] = React.useState(false);
     const [draft, setDraft] = React.useState(current);
     React.useEffect(() => { setDraft(current); }, [current]);
     const hex = canonicalHex(draft);
-    const isFixed = options.effect === "fixed";
     function apply(color) {
       setDraft(color);
-      const values = { [key]: color };
-      if (!isFixed && options.effect !== "pulse") values[flag] = false;
-      save(values);
+      save({ [key]: color });
     }
     return h(N.View, { style: card },
       h(N.Pressable, { accessibilityRole: "button", accessibilityState: { expanded: open },
@@ -336,15 +402,10 @@
         h(N.View, { style: { width: 29, height: 29, borderRadius: 15, borderWidth: 1,
           borderColor: "#b0adbd", backgroundColor: current } }),
         h(N.View, { style: { flex: 1 } }, h(N.Text, { style: ink }, title),
-          h(N.Text, { style: hint }, current.toUpperCase() + (options[flag] && !isFixed ? " · Efeito ativo" : " · Cor fixa"))),
+          h(N.Text, { style: hint }, current.toUpperCase())),
         h(N.Text, { style: hint }, open ? "Fechar" : "Editar")),
       open && h(N.View, { style: { gap: 10 } },
-        !isFixed && h(N.View, { style: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" } },
-          h(N.Text, { style: ink }, "Animar esta área"),
-          h(N.Switch, { accessibilityLabel: "Animar " + title.toLowerCase(), value: options[flag],
-            onValueChange: value => save({ [flag]: value }) })),
-        h(N.Text, { style: hint }, options.effect === "pulse" ? "O pulso parte da cor escolhida." :
-          isFixed ? "Selecione uma cor ou digite seu código HEX." : "Escolher uma cor fixa desliga a animação só nesta área."),
+        h(N.Text, { style: hint }, "Selecione uma cor ou digite seu código HEX."),
         h(N.View, { style: { flexDirection: "row", flexWrap: "wrap", gap: 4 } },
           ...swatches.map(color => h(N.Pressable, { key: color, accessibilityRole: "button",
             accessibilityLabel: title + " " + color, accessibilityState: { selected: current === color },
@@ -360,33 +421,46 @@
           h(N.Text, { style: ink }, hex ? "Aplicar " + hex.toUpperCase() : "Digite 3 ou 6 dígitos hexadecimais"))));
   }
 
+  const editorPalette = { surface: "#17171e", text: "#f5f4ff", muted: "#c8c5d6", border: "#575361",
+    fill: "#634b96", shade: "#2d2b35", label: "#ffffff", secondaryLabel: "#f5f4ff" };
+  const idleSubscribe = () => () => {};
+  const idlePalette = () => editorPalette;
   let pendingSave = Promise.resolve();
   function SettingsComponent({ api }) {
     const { React, ReactNative: N } = valenced.react;
     const h = React.createElement;
     const options = readSettings(api.jsonStorage.use());
+    const live = React.useSyncExternalStore(session?.subscribe || idleSubscribe, session?.getPalette || idlePalette);
+    const colors = options.rgb ? live : editorPalette;
+    const panel = { ...card, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 };
+    const bodyStyle = { ...ink, color: colors.text }, hintStyle = { ...hint, color: colors.muted };
     const [picker, setPicker] = React.useState(null);
     function save(change) {
       pendingSave = pendingSave.then(() => api.jsonStorage.set(change)).catch(e => api.logger?.warn?.(e));
     }
     function choices(key, title, items) {
       const open = picker === key;
-      return h(N.View, { style: card },
+      return h(N.View, { style: panel },
         h(N.Pressable, { accessibilityRole: "button", accessibilityState: { expanded: open },
           onPress: () => setPicker(open ? null : key), style: { justifyContent: "center", minHeight: 44 } },
-          h(N.Text, { style: hint }, title), h(N.Text, { style: ink }, items[options[key]] + "  ▾")),
+          h(N.Text, { style: hintStyle }, title), h(N.Text, { style: bodyStyle }, items[options[key]] + "  ▾")),
         open && h(N.View, { style: { flexDirection: "row", flexWrap: "wrap", gap: 6 } },
-          ...Object.entries(items).map(([id, name]) => h(Choice, { key: id, title: name,
+          ...Object.entries(items).map(([id, name]) => h(Choice, { key: id, title: name, colors,
             selected: options[key] === id, onPress: () => { save({ [key]: id }); setPicker(null); } }))));
     }
     const speeds = Object.fromEntries(Object.entries(durations).map(([id, ms]) => [id, ms / 1000 + " s"]));
     return h(N.View, { style: { padding: 12, gap: 8 } },
-      choices("effect", "Efeito", effects),
-      options.effect !== "fixed" && choices("speed", "Duração do ciclo", speeds),
-      options.effect !== "fixed" && h(N.View, { style: { ...card, flexDirection: "row", alignItems: "center", justifyContent: "space-between" } },
-        h(N.Text, { style: ink }, "Pausar animação"),
-        h(N.Switch, { accessibilityLabel: "Pausar animação", value: options.paused, onValueChange: paused => save({ paused }) })),
-      ...areas.map(area => h(ColorEditor, { key: area.key, area, options, save })));
+      toggle("Tema RGB", options.rgb, rgb => { setPicker(null); save(rgb ? { rgb, paused: false } : { rgb }); }),
+      options.rgb && choices("effect", "Efeito", effects),
+      options.rgb && choices("speed", "Duração do ciclo", speeds),
+      options.rgb && toggle("Pausar animação", options.paused, paused => save({ paused })),
+      ...(!options.rgb ? areas.map(area => h(ColorEditor, { key: area.key, area, options, save })) : []));
+    function toggle(label, value, onValueChange) {
+      return h(N.View, { style: { ...panel, flexDirection: "row", alignItems: "center", justifyContent: "space-between" } },
+        h(N.Text, { style: bodyStyle }, label),
+        h(N.Switch, { accessibilityLabel: label, value, onValueChange,
+          trackColor: { false: colors.shade, true: colors.fill }, thumbColor: colors.text }));
+    }
   }
 
   let session;
