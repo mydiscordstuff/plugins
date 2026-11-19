@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "id": "mydiscordstuff.pin-dms",
+  "name": "PinDMs",
+  "description": "Organize suas DMs em categorias com nome e cor. Escolha a ordem das conversas e personalize apelidos localmente.",
+  "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
+  "icon": "PinIcon",
+  "version": "1.0.0",
+  "dependencies": {
+    "valenced.api": { "version": ">=1 <2" },
+    "discord": { "version": ">=352.2" },
+    "valenced.settings": {}
+  },
+  "dist": { "script": "index.js" }
+}
