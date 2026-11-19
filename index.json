@@ -5,16 +5,16 @@
   "plugins": {
     "mydiscordstuff.amoled-rgb": {
       "name": "desmaiaram themes",
-      "description": "Editor de temas para fundo, botões e texto, com cores HEX, efeitos RGB e velocidade ajustável.",
+      "description": "RGB animado sobre fundo AMOLED preto puro, com nove velocidades e editor de cores fixas ao desligar o RGB.",
       "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
       "channels": {
-        "latest": "1.1.0"
+        "latest": "1.2.0"
       },
       "versions": {
-        "1.1.0": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/e40a841233ff770b16950f62f49409ffc7fe97755aacdc4fab9171cefc4b581c/mydiscordstuff.amoled-rgb@1.1.0.zip",
-          "sha256": "e40a841233ff770b16950f62f49409ffc7fe97755aacdc4fab9171cefc4b581c",
-          "size": 7528,
+        "1.2.0": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/10ff2bd927b64136e3fc847a32010405eaa5c67de9dac9e88a7e89a969ac8fb9/mydiscordstuff.amoled-rgb@1.2.0.zip",
+          "sha256": "10ff2bd927b64136e3fc847a32010405eaa5c67de9dac9e88a7e89a969ac8fb9",
+          "size": 8803,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
