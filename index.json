@@ -3,30 +3,6 @@
   "name": "mydiscordstuff Plugins",
   "description": "Plugins para o Valenced mantidos por mydiscordstuff.",
   "plugins": {
-    "mydiscordstuff.pin-dms": {
-      "name": "PinDMs",
-      "description": "Organize suas DMs em categorias com nome e cor. Escolha a ordem das conversas e personalize apelidos localmente.",
-      "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
-      "channels": {
-        "latest": "1.0.0"
-      },
-      "versions": {
-        "1.0.0": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/ab3a14b5247ebcf77253078984c45e62165a7ba9e9cc472b762318a1683f76d3/mydiscordstuff.pin-dms@1.0.0.zip",
-          "sha256": "ab3a14b5247ebcf77253078984c45e62165a7ba9e9cc472b762318a1683f76d3",
-          "size": 7421,
-          "dependencies": {
-            "valenced.api": {
-              "version": ">=1 <2"
-            },
-            "discord": {
-              "version": ">=352.2"
-            },
-            "valenced.settings": {}
-          }
-        }
-      }
-    },
     "mydiscordstuff.platform-indicators": {
       "name": "Platform Indicators (Valenced)",
       "description": "Platform icons use presence colors by default. Device emojis appear beside message timestamps. Crimson icons are optional.",
@@ -61,13 +37,13 @@
         "k1ng0p (https://github.com/k1ng0p/UserRadar \"UserRadar original para Vencord\")"
       ],
       "channels": {
-        "latest": "1.0.0"
+        "latest": "1.0.1"
       },
       "versions": {
-        "1.0.0": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/481200e0c9989af17e38be4ebf44fefeb55dbc8562bd17e9ecb85209a7e481d9/mydiscordstuff.user-radar@1.0.0.zip",
-          "sha256": "481200e0c9989af17e38be4ebf44fefeb55dbc8562bd17e9ecb85209a7e481d9",
-          "size": 14476,
+        "1.0.1": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/a0eb2c6983d2339ebfa4c553bb955eef9827c2ed33d41936fda96a7369d5f7b8/mydiscordstuff.user-radar@1.0.1.zip",
+          "sha256": "a0eb2c6983d2339ebfa4c553bb955eef9827c2ed33d41936fda96a7369d5f7b8",
+          "size": 15931,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
