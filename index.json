@@ -3,6 +3,30 @@
   "name": "mydiscordstuff Plugins",
   "description": "Plugins para o Valenced mantidos por mydiscordstuff.",
   "plugins": {
+    "mydiscordstuff.pin-dms": {
+      "name": "PinDMs",
+      "description": "Organize suas DMs em categorias com nome e cor. Escolha a ordem das conversas e personalize apelidos localmente.",
+      "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
+      "channels": {
+        "latest": "1.0.0"
+      },
+      "versions": {
+        "1.0.0": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/ab3a14b5247ebcf77253078984c45e62165a7ba9e9cc472b762318a1683f76d3/mydiscordstuff.pin-dms@1.0.0.zip",
+          "sha256": "ab3a14b5247ebcf77253078984c45e62165a7ba9e9cc472b762318a1683f76d3",
+          "size": 7421,
+          "dependencies": {
+            "valenced.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": ">=352.2"
+            },
+            "valenced.settings": {}
+          }
+        }
+      }
+    },
     "mydiscordstuff.platform-indicators": {
       "name": "Platform Indicators (Valenced)",
       "description": "Platform icons use presence colors by default. Device emojis appear beside message timestamps. Crimson icons are optional.",
