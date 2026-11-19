@@ -1,14 +1,20 @@
 {
   "format": 1,
   "id": "mydiscordstuff.amoled-rgb",
-  "name": "AMOLED RGB",
-  "description": "Fundo preto puro com cores que percorrem o arco-íris nas letras e nos botões.",
+  "name": "desmaiaram themes",
+  "description": "Editor de temas para fundo, botões e texto, com cores HEX, efeitos RGB e velocidade ajustável.",
   "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "icon": "PaintPaletteIcon",
   "dependencies": {
-    "valenced.api": { "version": ">=1 <2" },
-    "discord": { "version": ">=352.2" }
+    "valenced.api": {
+      "version": ">=1 <2"
+    },
+    "discord": {
+      "version": ">=352.2"
+    }
   },
-  "dist": { "script": "index.js" }
+  "dist": {
+    "script": "index.js"
+  }
 }

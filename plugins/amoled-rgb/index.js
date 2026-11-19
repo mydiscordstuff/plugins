@@ -1,7 +1,40 @@
 ({ default: (function () {
   "use strict";
-  const durations = { slow: 60000, normal: 30000, fast: 15000 };
-  const defaults = { speed: "normal", paused: false };
+  const durations = { s5: 5000, s10: 10000, fast: 15000, s20: 20000, normal: 30000,
+    s45: 45000, slow: 60000, s90: 90000, s120: 120000 };
+  const effects = {
+    rainbow: "Arco-íris suave", chroma: "Chroma pulsante", wave: "Onda de cores",
+    pulse: "Pulso da cor escolhida", fixed: "Cores fixas",
+  };
+  const areas = [
+    { key: "background", title: "Fundo", offset: 0 },
+    { key: "buttons", title: "Botões", offset: 1 / 3 },
+    { key: "text", title: "Texto", offset: 2 / 3 },
+  ];
+  const defaults = { speed: "normal", paused: false, effect: "rainbow",
+    background: "#000000", buttons: "#6949aa", text: "#e2c9ff",
+    backgroundAnimated: false, buttonsAnimated: true, textAnimated: true };
+  const owns = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+  function canonicalHex(value) {
+    if (typeof value !== "string") return null;
+    const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(value.trim());
+    if (!match) return null;
+    const digits = match[1].toLowerCase();
+    return "#" + (digits.length === 3 ? digits.replace(/./g, c => c + c) : digits);
+  }
+  function readSettings(value) {
+    const result = { ...defaults };
+    if (!value) return result;
+    if (owns(effects, value.effect)) result.effect = value.effect;
+    if (owns(durations, value.speed)) result.speed = value.speed;
+    result.paused = value.paused === true;
+    for (const { key } of areas) {
+      result[key] = canonicalHex(value[key]) || defaults[key];
+      const flag = key + "Animated";
+      if (typeof value[flag] === "boolean") result[flag] = value[flag];
+    }
+    return result;
+  }
   const tokenRole = new Map();
   function assign(role, names) {
     for (const name of names.trim().split(/\s+/)) tokenRole.set(name, role);
@@ -112,38 +145,70 @@
   // Interpolate around the wheel. Separate brightness ranges keep labels readable on fills.
   const wheel = [[255,48,72], [255,151,25], [247,221,20], [44,218,102],
     [14,219,220], [52,122,255], [159,72,255], [249,56,183]];
-  function paletteAt(phase) {
-    const position = phase * wheel.length;
-    const i = Math.floor(position) % wheel.length;
-    const fraction = position - Math.floor(position);
-    const rgb = wheel[i].map((v, c) => v + (wheel[(i + 1) % wheel.length][c] - v) * fraction);
-    function tint(low, high) {
-      return "#" + rgb.map(v => Math.round(low + (high - low) * v / 255)
-        .toString(16).padStart(2, "0")).join("");
-    }
-    return { surface: "#000000", text: tint(104, 255), muted: tint(99, 196),
-      label: tint(205, 255), fill: tint(10, 102), shade: tint(5, 49), border: tint(28, 115) };
+  function mix(a, b, weight) {
+    return a.map((v, i) => v + (b[i] - v) * weight);
+  }
+  const black = [0, 0, 0], white = [255, 255, 255];
+  const rgbOf = hex => hex.slice(1).match(/../g).map(s => parseInt(s, 16));
+  const hexOf = rgb => "#" + rgb.map(n => Math.round(n).toString(16).padStart(2, "0")).join("");
+  function luminance(rgb) {
+    const linear = rgb.map(n => n / 255).map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  }
+  function readableLabel(fill, candidate) {
+    const a = luminance(fill), b = luminance(candidate);
+    if ((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) >= 4.5) return candidate;
+    return a > 0.179 ? black : white;
+  }
+  function frameColor(area, phase, s) {
+    const key = area.key;
+    const base = rgbOf(s[key]);
+    if (s.effect === "fixed" || !s[key + "Animated"]) return base;
+    const pulse = (1 - Math.cos(phase * 2 * Math.PI)) / 2;
+    if (s.effect === "pulse") return mix(base, white, 0.42 * pulse);
+    const position = ((phase + (s.effect === "wave" ? area.offset : 0)) % 1) * wheel.length;
+    const i = Math.floor(position);
+    const hue = mix(wheel[i], wheel[(i + 1) % wheel.length], position - i);
+    const ranges = { background: [1, 42], buttons: [10, 102], text: [104, 255] };
+    const [low, high] = ranges[key];
+    const rgb = hue.map(v => low + (high - low) * v / 255);
+    return s.effect === "chroma" ? mix(rgb, black, 0.35 * pulse) : rgb;
+  }
+  function paletteAt(phase, s) {
+    const [surface, fill, text] = areas.map(area => frameColor(area, phase, s));
+    const shade = mix(surface, fill, 0.52);
+    const label = mix(text, white, 0.68);
+    return {
+      surface: hexOf(surface), text: hexOf(text), muted: hexOf(mix(text, surface, 0.12)),
+      fill: hexOf(fill), shade: hexOf(shade), border: hexOf(mix(text, fill, 0.58)),
+      label: hexOf(readableLabel(fill, label)), secondaryLabel: hexOf(readableLabel(shade, label)),
+    };
+  }
+  for (const [name, role] of tokenRole) {
+    if (role === "label" && /SECONDARY|TERTIARY/.test(name)) tokenRole.set(name, "secondaryLabel");
   }
 
   function makeSession() {
     const listeners = new Set();
     const undo = [];
-    let palette = paletteAt(0), phase = 0, version = 1;
-    let duration = durations.normal, running = false, stopped = false;
-    let foreground = false, reduceMotion = true, paused = false, timer = null, lastTime;
+    let options = readSettings(), phase = 0, version = 1;
+    let palette = paletteAt(phase, options);
+    let running = false, stopped = false;
+    let foreground = false, reduceMotion = true, timer = null, lastTime;
     function notify() {
       version++;
       for (const listener of listeners) listener();
     }
     function tick() {
       const now = Date.now();
-      phase = (phase + Math.max(0, now - lastTime) / duration) % 1;
+      phase = (phase + Math.max(0, now - lastTime) / durations[options.speed]) % 1;
       lastTime = now;
-      palette = paletteAt(phase);
+      palette = paletteAt(phase, options);
       notify();
     }
     function schedule() {
-      const animate = running && !stopped && foreground && !reduceMotion && !paused && listeners.size > 0;
+      const hasEffect = options.effect !== "fixed" && areas.some(({ key }) => options[key + "Animated"]);
+      const animate = hasEffect && running && !stopped && foreground && !reduceMotion && !options.paused && listeners.size > 0;
       if (animate && timer === null) {
         lastTime = Date.now();
         timer = setInterval(tick, 250);
@@ -199,9 +264,10 @@
       start({ jsonStorage, logger }) {
         const { AccessibilityInfo, AppState } = valenced.react.ReactNative;
         function settings() {
-          const value = jsonStorage.cache || defaults;
-          duration = durations[value.speed] || durations.normal;
-          paused = value.paused === true;
+          if (stopped) return;
+          options = readSettings(jsonStorage.cache);
+          palette = paletteAt(phase, options);
+          notify();
           schedule();
         }
         undo.push(jsonStorage.subscribe(settings));
@@ -236,6 +302,93 @@
     };
   }
 
+  const swatches = ["#000000", "#191926", "#ffffff", "#9e173d", "#ed6840", "#e5bf48",
+    "#27ae74", "#37cbd1", "#487be8", "#8255d6", "#c644ae", "#f59dbb"];
+  const card = { backgroundColor: "#17171e", borderRadius: 12, padding: 14, gap: 10 };
+  const ink = { color: "#f5f4ff", fontSize: 16 };
+  const hint = { color: "#c8c5d6", fontSize: 14 };
+  function Choice({ title, selected, onPress }) {
+    const { React, ReactNative: N } = valenced.react;
+    return React.createElement(N.Pressable, { onPress, accessibilityRole: "radio",
+      accessibilityState: { checked: selected }, style: { paddingHorizontal: 12, minHeight: 44,
+        justifyContent: "center", backgroundColor: selected ? "#634b96" : "#2d2b35", borderRadius: 8 } },
+      React.createElement(N.Text, { style: ink }, title));
+  }
+
+  function ColorEditor({ area, options, save }) {
+    const { React, ReactNative: N } = valenced.react;
+    const h = React.createElement;
+    const { key, title } = area, current = options[key], flag = key + "Animated";
+    const [open, setOpen] = React.useState(false);
+    const [draft, setDraft] = React.useState(current);
+    React.useEffect(() => { setDraft(current); }, [current]);
+    const hex = canonicalHex(draft);
+    const isFixed = options.effect === "fixed";
+    function apply(color) {
+      setDraft(color);
+      const values = { [key]: color };
+      if (!isFixed && options.effect !== "pulse") values[flag] = false;
+      save(values);
+    }
+    return h(N.View, { style: card },
+      h(N.Pressable, { accessibilityRole: "button", accessibilityState: { expanded: open },
+        onPress: () => setOpen(!open), style: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 12 } },
+        h(N.View, { style: { width: 29, height: 29, borderRadius: 15, borderWidth: 1,
+          borderColor: "#b0adbd", backgroundColor: current } }),
+        h(N.View, { style: { flex: 1 } }, h(N.Text, { style: ink }, title),
+          h(N.Text, { style: hint }, current.toUpperCase() + (options[flag] && !isFixed ? " · Efeito ativo" : " · Cor fixa"))),
+        h(N.Text, { style: hint }, open ? "Fechar" : "Editar")),
+      open && h(N.View, { style: { gap: 10 } },
+        !isFixed && h(N.View, { style: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" } },
+          h(N.Text, { style: ink }, "Animar esta área"),
+          h(N.Switch, { accessibilityLabel: "Animar " + title.toLowerCase(), value: options[flag],
+            onValueChange: value => save({ [flag]: value }) })),
+        h(N.Text, { style: hint }, options.effect === "pulse" ? "O pulso parte da cor escolhida." :
+          isFixed ? "Selecione uma cor ou digite seu código HEX." : "Escolher uma cor fixa desliga a animação só nesta área."),
+        h(N.View, { style: { flexDirection: "row", flexWrap: "wrap", gap: 4 } },
+          ...swatches.map(color => h(N.Pressable, { key: color, accessibilityRole: "button",
+            accessibilityLabel: title + " " + color, accessibilityState: { selected: current === color },
+            onPress: () => apply(color), style: { width: 44, height: 44, alignItems: "center", justifyContent: "center" } },
+            h(N.View, { style: { width: 32, height: 32, borderRadius: 16, backgroundColor: color,
+              borderWidth: current === color ? 3 : 1, borderColor: current === color ? "#ffffff" : "#868390" } })))),
+        h(N.TextInput, { accessibilityLabel: "Código HEX para " + title.toLowerCase(), value: draft, onChangeText: setDraft,
+          autoCapitalize: "none", autoCorrect: false, maxLength: 8, placeholder: "#8255D6", placeholderTextColor: "#aba7b6",
+          onSubmitEditing: () => { if (hex) apply(hex); },
+          style: { ...ink, backgroundColor: "#26242e", borderRadius: 8, paddingHorizontal: 12, minHeight: 44 } }),
+        h(N.Pressable, { accessibilityRole: "button", disabled: !hex, accessibilityState: { disabled: !hex },
+          onPress: () => apply(hex), style: { padding: 12, borderRadius: 8, backgroundColor: hex ? "#634b96" : "#38363f" } },
+          h(N.Text, { style: ink }, hex ? "Aplicar " + hex.toUpperCase() : "Digite 3 ou 6 dígitos hexadecimais"))));
+  }
+
+  let pendingSave = Promise.resolve();
+  function SettingsComponent({ api }) {
+    const { React, ReactNative: N } = valenced.react;
+    const h = React.createElement;
+    const options = readSettings(api.jsonStorage.use());
+    const [picker, setPicker] = React.useState(null);
+    function save(change) {
+      pendingSave = pendingSave.then(() => api.jsonStorage.set(change)).catch(e => api.logger?.warn?.(e));
+    }
+    function choices(key, title, items) {
+      const open = picker === key;
+      return h(N.View, { style: card },
+        h(N.Pressable, { accessibilityRole: "button", accessibilityState: { expanded: open },
+          onPress: () => setPicker(open ? null : key), style: { justifyContent: "center", minHeight: 44 } },
+          h(N.Text, { style: hint }, title), h(N.Text, { style: ink }, items[options[key]] + "  ▾")),
+        open && h(N.View, { style: { flexDirection: "row", flexWrap: "wrap", gap: 6 } },
+          ...Object.entries(items).map(([id, name]) => h(Choice, { key: id, title: name,
+            selected: options[key] === id, onPress: () => { save({ [key]: id }); setPicker(null); } }))));
+    }
+    const speeds = Object.fromEntries(Object.entries(durations).map(([id, ms]) => [id, ms / 1000 + " s"]));
+    return h(N.View, { style: { padding: 12, gap: 8 } },
+      choices("effect", "Efeito", effects),
+      options.effect !== "fixed" && choices("speed", "Duração do ciclo", speeds),
+      options.effect !== "fixed" && h(N.View, { style: { ...card, flexDirection: "row", alignItems: "center", justifyContent: "space-between" } },
+        h(N.Text, { style: ink }, "Pausar animação"),
+        h(N.Switch, { accessibilityLabel: "Pausar animação", value: options.paused, onValueChange: paused => save({ paused }) })),
+      ...areas.map(area => h(ColorEditor, { key: area.key, area, options, save })));
+  }
+
   let session;
   return plugin({
     jsonStorage: { default: defaults },
@@ -246,18 +399,6 @@
       if (self.startedLate) self.requireReload();
     },
     start(api) { session.start(api); },
-    SettingsComponent({ api }) {
-      const { React } = valenced.react;
-      const { TableRow, TableRowGroup, TableSwitchRow } = valenced.discord.design.Design;
-      const settings = api.jsonStorage.use() || defaults;
-      const rows = [["slow", "Lento"], ["normal", "Normal"], ["fast", "Rápido"]];
-      return React.createElement(TableRowGroup, { title: "Ciclo de cores" },
-        ...rows.map(([id, label]) => React.createElement(TableRow, { key: id,
-          label: label + " · " + durations[id] / 1000 + " s",
-          subLabel: (settings.speed || defaults.speed) === id ? "Selecionado" : undefined,
-          onPress: () => api.jsonStorage.set({ speed: id }) })),
-        React.createElement(TableSwitchRow, { key: "pause", label: "Pausar na cor atual",
-          value: settings.paused === true, onValueChange: paused => api.jsonStorage.set({ paused }) }));
-    },
+    SettingsComponent,
   });
 })() })

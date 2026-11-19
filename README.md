@@ -4,7 +4,7 @@ Cada plugin tem uma pasta em `plugins/` com seu código e `manifest.json`.
 
 | Plugin | Código-fonte |
 | --- | --- |
-| AMOLED RGB | [plugins/amoled-rgb/](plugins/amoled-rgb/) |
+| desmaiaram themes | [plugins/amoled-rgb/](plugins/amoled-rgb/) |
 | Platform Indicators | [plugins/platform-indicators/](plugins/platform-indicators/) |
 | UserRadar (Android) | [plugins/user-radar/](plugins/user-radar/) |
 
@@ -12,9 +12,13 @@ Cada plugin tem uma pasta em `plugins/` com seu código e `manifest.json`.
 
 Abra **Configurações → Valenced → Plugins → ⚙️** e adicione o [endereço do catálogo](https://raw.githubusercontent.com/mydiscordstuff/plugins/main/index.json).
 
-## AMOLED RGB
+## desmaiaram themes
 
-Ative **AMOLED RGB** em **Valenced → Plugins** e toque em **Reload App** na primeira instalação. Na engrenagem do plugin, selecione um ciclo de 15, 30 ou 60 segundos ou pause na cor atual. O fundo das telas compatíveis fica preto puro. O ciclo pausa em segundo plano e respeita a opção de reduzir movimento do celular. Ao desativar o plugin, o Discord volta a usar as cores do tema selecionado.
+Atualize o antigo **AMOLED RGB** em **Valenced → Plugins** e use **Reload App**. Abra a engrenagem de **desmaiaram themes**. Na primeira instalação, o fundo é preto puro e o arco-íris colore botões e texto. A atualização aproveita a velocidade e a pausa já salvas.
+
+Escolha **Arco-íris suave**, **Chroma pulsante**, **Onda de cores**, **Pulso da cor escolhida** ou **Cores fixas**. A onda percorre as áreas animadas em momentos diferentes. A duração de um ciclo varia de 5 a 120 segundos, com nove opções.
+
+Toque em **Fundo**, **Botões** ou **Texto** para escolher uma amostra ou aplicar uma cor HEX. Cada área tem seu próprio controle de animação. No pulso, sua cor vira a base do efeito. Nos modos de arco-íris, escolher uma cor fixa pausa só aquela área. A animação respeita a opção de reduzir movimento do celular e pausa em segundo plano. Ao desativar o plugin, o tema anterior volta nas telas compatíveis.
 
 ## Editar ou adicionar um plugin
 
