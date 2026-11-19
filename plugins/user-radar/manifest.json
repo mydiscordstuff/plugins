@@ -8,7 +8,7 @@
     "k1ng0p (https://github.com/k1ng0p/UserRadar \"UserRadar original para Vencord\")"
   ],
   "icon": "BellIcon",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "dependencies": {
     "valenced.api": {
       "version": ">=1 <2"

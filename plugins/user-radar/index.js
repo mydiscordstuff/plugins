@@ -7,7 +7,7 @@
     shared: "Entradas e saídas em servidores",
   };
   const OPTIONS = {
-    enabled: true, quiet: false, from: "23:00", until: "07:00",
+    enabled: true, background: false, quiet: false, from: "23:00", until: "07:00",
     categories: { status: true, messages: true, edits: false, deletes: false,
       typing: false, voice: true, activity: false, profile: false, shared: false },
   };
@@ -87,15 +87,49 @@
   function makeSession(storage, logger) {
     const { Stores } = valenced.discord.flux;
     let accounts = {}, loaded = false, account = null, suspended = false, dead = false;
-    let saveTimer, bootTimer;
+    let saveTimer, connectionEpoch = 0;
+    let gateway, heldFor = null, loggedOut = false;
+    let testOwner = null, testResult = "";
+    const reason = "UserRadar";
     const listeners = new Set(), snapshots = new Map(), recent = new Map();
     const messages = new Map();
     const cleanups = [];
     function redraw() { for (const fn of listeners) fn(); }
     function wipeTransient() { snapshots.clear(); recent.clear(); messages.clear(); }
+    function syncGateway() {
+      const p = prefs();
+      const wanted = !dead && !loggedOut && p?.background && p.enabled && p.users.length ? account : null;
+      if (!gateway || heldFor === wanted) return;
+      try {
+        if (heldFor) { gateway.stopRequest(reason); heldFor = null; }
+        if (wanted) { gateway.setRequestedBy(reason); heldFor = wanted; }
+      } catch (err) { logger?.warn?.("UserRadar: pedido de conexão em segundo plano", err); }
+    }
+    function backgroundHint() {
+      if (!gateway) return "A conexão em segundo plano ainda não está disponível nesta versão ou sessão do Discord.";
+      if (heldFor) return "Conexão solicitada ao Discord. O Android ainda pode suspender o app.";
+      return "Ative os alertas e adicione uma pessoa para manter o pedido de conexão.";
+    }
+    function toggleExitTest() {
+      const id = syncAccount();
+      if (!id || dead || loggedOut) return;
+      testOwner = testOwner === id ? null : id;
+      testResult = ""; redraw();
+    }
+    function appChanged(state) {
+      if (dead || loggedOut) return;
+      const id = syncAccount();
+      if (state !== "background" || !id || testOwner !== id) return;
+      testOwner = null;
+      void notifications(["UserRadar", "O Discord passou para segundo plano. Este é o alerta de teste.", "background-test"],
+        () => !dead && !loggedOut && account === id).then(result => {
+        if (!dead && account === id) { testResult = ANDROID_STATE[result] || ""; redraw(); }
+      });
+      redraw();
+    }
     function syncAccount() {
       const id = Stores.UserStore?.getCurrentUser?.()?.id ?? null;
-      if (id !== account) { account = id; wipeTransient(); redraw(); }
+      if (id !== account) { account = id; testOwner = null; testResult = ""; wipeTransient(); syncGateway(); redraw(); }
       return account;
     }
     function prefs() { return loaded && account ? accounts[account] ?? blank() : null; }
@@ -116,7 +150,7 @@
     function update(fn) {
       syncAccount();
       const p = prefs();
-      if (p) save(fn(p), true);
+      if (p) { save(fn(p), true); syncGateway(); }
     }
     function person(id) {
       return prefs()?.users.find(u => u.id === id && !Stores.RelationshipStore?.isBlocked?.(id));
@@ -252,13 +286,19 @@
     function baseline() { wipeTransient(); syncAccount(); for (const u of prefs()?.users ?? []) seed(u.id); }
     function process(e) {
       if (e.type === "CONNECTION_CLOSED" || e.type === "LOGOUT") {
-        clearTimeout(bootTimer); suspended = true; wipeTransient();
-        if (e.type === "LOGOUT") { account = null; redraw(); }
+        connectionEpoch++; suspended = true; wipeTransient();
+        if (e.type === "LOGOUT") { loggedOut = true; account = null; testOwner = null; testResult = ""; syncGateway(); redraw(); }
         return;
       }
       if (["CONNECTION_OPEN", "CONNECTION_OPEN_SUPPLEMENTAL", "CONNECTION_RESUMED"].includes(e.type)) {
-        suspended = true; clearTimeout(bootTimer);
-        bootTimer = setTimeout(() => { if (!dead) { baseline(); suspended = false; redraw(); } }, 0);
+        suspended = true;
+        const epoch = ++connectionEpoch;
+        // Run after this Flux dispatch, including when RN has paused foreground timers.
+        Promise.resolve().then(() => {
+          if (dead || connectionEpoch !== epoch) return;
+          loggedOut = false;
+          try { baseline(); syncGateway(); } finally { suspended = false; redraw(); }
+        }).catch(err => logger?.warn?.("UserRadar: reconexão", err));
         return;
       }
       if (!loaded || suspended || !syncAccount() || !prefs().users.length) return;
@@ -289,6 +329,14 @@
       }
     }
     function start() {
+      const find = valenced.discord.utils?.modules?.finders?.getModuleWithImportedPath;
+      if (find) cleanups.push(find("modules/gateway/RequestGatewaySocket.tsx", mod => {
+        const api = mod?.setRequestedBy ? mod : mod?.default;
+        if (dead || typeof api?.setRequestedBy !== "function" || typeof api.stopRequest !== "function") return;
+        gateway = api; syncGateway(); redraw();
+      }));
+      const appSub = valenced.react.ReactNative.AppState.addEventListener("change", appChanged);
+      cleanups.push(() => appSub?.remove?.());
       const types = ["CONNECTION_OPEN", "CONNECTION_OPEN_SUPPLEMENTAL", "CONNECTION_RESUMED", "CONNECTION_CLOSED", "LOGOUT",
         "PRESENCE_UPDATE", "PRESENCE_UPDATES", "VOICE_STATE_UPDATE", "VOICE_STATE_UPDATES", "MESSAGE_CREATE",
         "MESSAGE_UPDATE", "MESSAGE_DELETE", "TYPING_START", "USER_UPDATE", "USER_PROFILE_FETCH_SUCCESS",
@@ -302,11 +350,11 @@
       writes.then(() => storage.get()).then(data => {
         if (dead) return;
         accounts = { ...(data?.accounts ?? {}) };
-        loaded = true; baseline(); redraw();
+        loaded = true; baseline(); syncGateway(); redraw();
       }).catch(err => logger?.error?.("UserRadar: falha ao carregar a lista", err));
     }
     function stop() {
-      dead = true; clearTimeout(bootTimer);
+      dead = true; connectionEpoch++; testOwner = null; syncGateway();
       if (saveTimer) flush();
       cleanups.splice(0).forEach(fn => fn());
       listeners.clear(); wipeTransient();
@@ -326,7 +374,8 @@
       seed(id);
       return "";
     }
-    return { start, stop, add, remove, display, update, prefs, syncAccount,
+    return { start, stop, add, remove, display, update, prefs, syncAccount, backgroundHint, toggleExitTest,
+      exitTestArmed: () => !!testOwner, exitTestResult: () => testResult,
       subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); } };
   }
 
@@ -422,6 +471,11 @@
         row("settings", "Notificações do Android", () => {
           openNotificationSettings().catch(() => setSystem("send-error"));
         }, "Ajuste a permissão, o som e a vibração das notificações.")),
+      group("Segundo plano",
+        toggle("background", "Manter conexão em segundo plano", p.background, v => setOption("background", v)),
+        row("test-away", session.exitTestArmed() ? "Cancelar teste ao sair" : "Testar ao sair do Discord",
+          session.toggleExitTest, session.exitTestArmed() ? "Aperte Início ou abra outro app agora." : session.exitTestResult() || "Envia um alerta na próxima troca de app.")),
+      ...(p.background ? [label(session.backgroundHint(), "background-status")] : []),
       group("Horário silencioso", toggle("quiet", "Silenciar durante um período", p.quiet, v => setOption("quiet", v))),
       ...(p.quiet ? [clock("from", p.from), clock("until", p.until),
         ...(p.from === p.until ? [label("Horários iguais silenciam as notificações o dia inteiro.")] : [])] : []),

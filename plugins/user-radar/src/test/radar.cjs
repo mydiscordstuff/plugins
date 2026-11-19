@@ -10,6 +10,7 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 async function host(options = {}) {
   let owner = me, data = options.data || { accounts: {} }, route = null, section = null, blocked = false;
   const errors = [], notifications = [], hooks = new Map(), cleanup = [];
+  const appListeners = new Set(), requests = [];
   const slots = [], effects = [], disposers = [];
   let slot = 0;
   const R = {
@@ -24,7 +25,7 @@ async function host(options = {}) {
     useEffect(fn, deps) { const i = slot++; if (!slots[i]) { slots[i] = deps; effects.push(fn); } },
   };
   const native = { TextInput: "input", View: "view", ScrollView: "scroll", Keyboard: { dismiss() {} },
-    AppState: { addEventListener() { return { remove() {} }; } }, Platform: { OS: "android", Version: options.version || 33 },
+    AppState: { addEventListener(_, fn) { appListeners.add(fn); return { remove() { appListeners.delete(fn); } }; } }, Platform: { OS: "android", Version: options.version || 33 },
     PermissionsAndroid: { check: async () => options.granted !== false, request: async () => { options.requests = (options.requests || 0) + 1; } },
     NativeModules: options.modules || {} };
   const channel = { id: "dm", type: 1 };
@@ -44,6 +45,11 @@ async function host(options = {}) {
       return "ready";
     } } },
     discord: {
+      utils: { modules: { finders: { getModuleWithImportedPath(path, fn) {
+        assert.equal(path, "modules/gateway/RequestGatewaySocket.tsx");
+        fn({setRequestedBy: reason => requests.push("+" + reason), stopRequest: reason => requests.push("-" + reason)});
+        return () => {};
+      } } } },
       common: { constants: { Constants: {} } },
       design: { Design: { TableRow: "row", TableSwitchRow: "switch", TableRowGroup: "group", Text: "text" } },
       flux: { Stores: stores, onFluxEventDispatched(type, fn) { hooks.set(type, fn); return () => hooks.delete(type); } },
@@ -85,9 +91,10 @@ async function host(options = {}) {
     disposers.splice(0).forEach(f => f());
     cleanup.reverse().forEach(f => f()); await turn();
     assert.equal(route, null); assert.equal(section, null); assert.equal(hooks.size, 0);
-    assert.deepEqual(errors, []);
+    assert.deepEqual(errors, []); assert.equal(appListeners.size, 0);
   }
-  return { notifications, field, add, send, message, toggle, stop,
+  return { notifications, field, add, send, message, toggle, stop, requests,
+    appState: s => appListeners.forEach(fn => fn(s)),
     account: id => { owner = id; }, block: flag => { blocked = flag; }, section: () => section, data: () => data };
 }
 
@@ -184,4 +191,39 @@ test("reload fallback respects app permissions, a muted channel and session life
   await button().onPress(); assert.equal(posts.length, 0);
   options.missing = true;
   h.message("stop-in-flight"); await h.stop(); assert.equal(posts.length, 0);
+});
+
+test("background gateway request is owned by the active account and released once", async () => {
+  const h = await host();
+  h.toggle("Manter conexão em segundo plano", true);
+  assert.deepEqual(h.requests, []);
+  h.add(who);
+  h.appState("background"); h.appState("active"); h.appState("background");
+  assert.deepEqual(h.requests, ["+UserRadar"]);
+  h.send({type:"CONNECTION_CLOSED"});
+  h.send({type:"CONNECTION_RESUMED"});
+  await Promise.resolve(); // No foreground timer has run.
+  h.message("background-activity"); assert.equal(h.notifications.length, 1);
+  h.send({type:"CONNECTION_OPEN"}); h.send({type:"LOGOUT"}); await Promise.resolve();
+  assert.deepEqual(h.requests, ["+UserRadar", "-UserRadar"]);
+  h.account(other); h.send({type:"CONNECTION_OPEN"}); await Promise.resolve();
+  h.appState("active"); h.message("other-account"); assert.equal(h.notifications.length, 1);
+  h.account(me); h.appState("active");
+  h.toggle("Receber notificações no celular", false);
+  h.toggle("Receber notificações no celular", true);
+  await h.stop();
+  assert.deepEqual(h.requests, ["+UserRadar","-UserRadar","+UserRadar","-UserRadar","+UserRadar","-UserRadar"]);
+});
+
+test("exit test waits for background, sends once, and supports cancellation", async () => {
+  const h = await host();
+  const tap = name => h.field(n => n.props.label === name).onPress();
+  tap("Testar ao sair do Discord");
+  h.appState("inactive"); assert.equal(h.notifications.length, 0);
+  h.appState("background"); h.appState("background");
+  await turn(); assert.equal(h.notifications.length, 1);
+  assert.equal(h.notifications[0][2], "background-test");
+  h.appState("active"); tap("Testar ao sair do Discord"); tap("Cancelar teste ao sair");
+  h.appState("background"); assert.equal(h.notifications.length, 1);
+  await h.stop();
 });
