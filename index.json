@@ -37,13 +37,13 @@
         "k1ng0p (https://github.com/k1ng0p/UserRadar \"UserRadar original para Vencord\")"
       ],
       "channels": {
-        "latest": "1.0.1"
+        "latest": "1.0.2"
       },
       "versions": {
-        "1.0.1": {
-          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/a0eb2c6983d2339ebfa4c553bb955eef9827c2ed33d41936fda96a7369d5f7b8/mydiscordstuff.user-radar@1.0.1.zip",
-          "sha256": "a0eb2c6983d2339ebfa4c553bb955eef9827c2ed33d41936fda96a7369d5f7b8",
-          "size": 15931,
+        "1.0.2": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/4008eaa2b3511c131e33adf4bc066136f776a52f4dffcacc2bd66c815df7e69d/mydiscordstuff.user-radar@1.0.2.zip",
+          "sha256": "4008eaa2b3511c131e33adf4bc066136f776a52f4dffcacc2bd66c815df7e69d",
+          "size": 16829,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
