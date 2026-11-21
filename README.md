@@ -7,6 +7,7 @@ Cada plugin tem uma pasta em `plugins/` com seu código e `manifest.json`.
 | desmaiaram themes | [plugins/amoled-rgb/](plugins/amoled-rgb/) |
 | Platform Indicators | [plugins/platform-indicators/](plugins/platform-indicators/) |
 | UserRadar (Android) | [plugins/user-radar/](plugins/user-radar/) |
+| Volume Booster | [plugins/volume-booster/](plugins/volume-booster/) |
 
 ## Instalar no Valenced
 
@@ -19,6 +20,10 @@ Em **Valenced → Plugins**, atualize **desmaiaram themes**, use **Reload App** 
 Com **Tema RGB** ligado, o fundo das telas temáticas fica preto puro (`#000000`). Texto, botões, ícones, bordas e indicadores acompanham o efeito, inclusive quando você já salvou cores fixas. Escolha **Arco-íris suave**, **Chroma pulsante**, **Onda de cores** ou **Pulso RGB**, com nove velocidades de 5 a 120 segundos. A pausa congela o efeito. A animação respeita a opção de reduzir movimento do celular e pausa em segundo plano.
 
 Desligue **Tema RGB** para acessar **Fundo**, **Botões** e **Texto**. Escolha uma amostra ou digite uma cor HEX. Suas três cores ficam guardadas quando você volta ao RGB. O efeito alcança as cores que o Discord consulta pelo sistema de temas. Imagens, emojis e componentes nativos com cores próprias podem manter a aparência original.
+
+## Volume Booster
+
+Durante uma chamada de voz, abra **Valenced → Plugins → Volume Booster → ⚙️**. Toque no nome de uma pessoa e escolha **225%, 250%, 300%, 350% ou 400%**. O ajuste é local e vale para a chamada atual. Para desfazer, toque em **Voltar ao volume do Discord** ou mova o controle de volume da pessoa no próprio Discord. O painel mostra o valor solicitado à conexão de voz. O ganho audível depende do cliente e do aparelho.
 
 ## Editar ou adicionar um plugin
 

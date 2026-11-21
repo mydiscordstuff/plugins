@@ -1,0 +1,14 @@
+{
+  "format": 1,
+  "id": "mydiscordstuff.volume-booster",
+  "name": "Volume Booster",
+  "description": "Aumente só a voz de uma pessoa na sua chamada, com níveis de 225% a 400%.",
+  "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
+  "icon": "VoiceNormalIcon",
+  "version": "1.0.0",
+  "dependencies": {
+    "valenced.api": { "version": ">=1 <2" },
+    "discord": { "version": ">=352.2" }
+  },
+  "dist": { "script": "index.js" }
+}
