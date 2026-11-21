@@ -78,6 +78,29 @@
           }
         }
       }
+    },
+    "mydiscordstuff.volume-booster": {
+      "name": "Volume Booster",
+      "description": "Aumente só a voz de uma pessoa na sua chamada, com níveis de 225% a 400%.",
+      "author": "mydiscordstuff (https://github.com/mydiscordstuff)",
+      "channels": {
+        "latest": "1.0.0"
+      },
+      "versions": {
+        "1.0.0": {
+          "url": "https://raw.githubusercontent.com/mydiscordstuff/plugins/packages/pool/4c8345aceeabed1a6a72f9305d42b638e888714c4a5ea71eff3c883ef832cb25/mydiscordstuff.volume-booster@1.0.0.zip",
+          "sha256": "4c8345aceeabed1a6a72f9305d42b638e888714c4a5ea71eff3c883ef832cb25",
+          "size": 3069,
+          "dependencies": {
+            "valenced.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": ">=352.2"
+            }
+          }
+        }
+      }
     }
   }
 }
